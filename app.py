@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("InfernoCore", secrets.token_urlsafe(32))
 
 # ---------- MongoDB Connection ----------
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://InfernoCore:Ansh2010ak@cluster0.3y46hui.mongodb.net/?appName=Cluster0")
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URL)
 db = client['stresser_db']
 
