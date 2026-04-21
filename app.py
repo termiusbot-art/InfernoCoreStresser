@@ -2071,13 +2071,32 @@ ADMIN_NODES_HTML = '''
 <div class="col-md-8"><input type="file" name="binary" class="form-control bg-dark text-white" required></div>
 <div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div></form><small class="text-muted">Upload compiled 'ultimate' binary.</small></div></div>
 <div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead>
-<tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td>
-<td class="{% if n.status_detail=='active' %}status-online{% else %}status-offline{% endif %}">{{ n.status_detail|default('unknown') }}</td>
-<td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td>
-<td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td>
-<td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form>
-<form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form>
-<form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div></body></html>
+<tbody>
+{% for n in nodes %}
+<tr>
+  <td>{{ n.name }}</td>
+  <td>{{ n.node_type }}</td>
+  <td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td>
+  <td class="{% if n.status_detail=='active' %}status-online{% else %}status-offline{% endif %}">{{ n.status_detail|default('unknown') }}</td>
+  <td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td>
+  <td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td>
+  <td>
+    <!-- Check button -->
+    <form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline-block; margin-right:4px;">
+      <button type="submit" class="btn btn-sm btn-info">Check</button>
+    </form>
+    <!-- Toggle button -->
+    <form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline-block; margin-right:4px;">
+      <button type="submit" class="btn btn-sm btn-warning">Toggle</button>
+    </form>
+    <!-- Delete button -->
+    <form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline-block;" onsubmit="return confirm('Delete this node?');">
+      <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+    </form>
+  </td>
+</tr>
+{% endfor %}
+</tbody></table></div></div></div></body></html>
 '''
 
 ADMIN_KEYS_HTML = '''
