@@ -570,7 +570,7 @@ def test_vps_node_detailed(node):
         result['status'] = 'dead'
         result['message'] = str(e)
     return result
-
+    
 # ==================== USER ROUTES ====================
 @app.route('/')
 def index():
