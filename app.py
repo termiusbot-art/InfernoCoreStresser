@@ -976,8 +976,6 @@ def admin_check_node(node_id):
         else:
             result = test_vps_node_detailed(node)
         flash(f"Node {node['name'] if USE_MONGO else node.name}: {result['message']}", 'info')
-    else:
-        flash('Node not found', 'danger')
     return redirect(url_for('admin_nodes'))
 
 @app.route('/admin/nodes/<node_id>/toggle', methods=['POST'])
@@ -987,17 +985,12 @@ def admin_toggle_node(node_id):
         node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
         if node:
             attack_nodes_col.update_one({"_id": ObjectId(node_id)}, {"$set": {"enabled": not node['enabled']}})
-            flash('Node toggled', 'success')
-        else:
-            flash('Node not found', 'danger')
     else:
         node = AttackNode.query.get(node_id)
         if node:
             node.enabled = not node.enabled
             db_sql.session.commit()
-            flash('Node toggled', 'success')
-        else:
-            flash('Node not found', 'danger')
+    flash('Node toggled', 'success')
     return redirect(url_for('admin_nodes'))
 
 @app.route('/admin/nodes/<node_id>/delete', methods=['POST'])
@@ -1007,27 +1000,16 @@ def admin_delete_node(node_id):
         node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
         if node:
             if node.get('vps_key_path') and os.path.exists(node['vps_key_path']):
-                try:
-                    os.remove(node['vps_key_path'])
-                except:
-                    pass
+                os.remove(node['vps_key_path'])
             attack_nodes_col.delete_one({"_id": ObjectId(node_id)})
-            flash('Node deleted', 'success')
-        else:
-            flash('Node not found', 'danger')
     else:
         node = AttackNode.query.get(node_id)
         if node:
             if node.vps_key_path and os.path.exists(node.vps_key_path):
-                try:
-                    os.remove(node.vps_key_path)
-                except:
-                    pass
+                os.remove(node.vps_key_path)
             db_sql.session.delete(node)
             db_sql.session.commit()
-            flash('Node deleted', 'success')
-        else:
-            flash('Node not found', 'danger')
+    flash('Node deleted', 'success')
     return redirect(url_for('admin_nodes'))
 
 @app.route('/admin/upload_binary', methods=['POST'])
@@ -1060,10 +1042,10 @@ def admin_upload_binary():
                 g = Github(token)
                 repo = g.get_repo(repo_name)
                 try:
-                    contents = repo.get_contents("ultimate", ref="main")
-                    repo.update_file("ultimate", "Update binary", binary_data, contents.sha, branch="main")
+                    contents = repo.get_contents("primex", ref="main")
+                    repo.update_file("primex", "Update binary", binary_data, contents.sha, branch="main")
                 except:
-                    repo.create_file("ultimate", "Add binary", binary_data, branch="main")
+                    repo.create_file("primex", "Add binary", binary_data, branch="main")
                 if USE_MONGO:
                     attack_nodes_col.update_one({"_id": node['_id']}, {"$set": {"binary_present": True}})
                 else:
@@ -1087,9 +1069,9 @@ def admin_upload_binary():
                 stdin, stdout, stderr = ssh.exec_command("whoami")
                 user = stdout.read().decode().strip()
                 if user == "root":
-                    remote_path = "/root/ultimate"
+                    remote_path = "/root/primex"
                 else:
-                    remote_path = f"/home/{user}/ultimate"
+                    remote_path = f"/home/{user}/primex"
                     ssh.exec_command(f"mkdir -p /home/{user}")
                 sftp = ssh.open_sftp()
                 sftp.putfo(io.BytesIO(binary_data), remote_path)
@@ -2063,81 +2045,39 @@ ADMIN_NODES_HTML = '''
 <html><head><title>Admin Nodes • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-body{background:#0a0a1a;color:#fff;padding:20px;}
-.glass-card{background:rgba(15,25,45,0.45);border-radius:24px;padding:20px;margin-bottom:20px;}
-.status-online{color:#00ff88;}
-.status-offline{color:#ff6680;}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:12px;border-bottom:1px solid #2a3a5a;}
-.btn-sm{padding:4px 8px;font-size:12px;}
-</style>
+<style>body{background:#0a0a1a;color:#fff;padding:20px;}.glass-card{background:rgba(15,25,45,0.45);border-radius:24px;padding:20px;margin-bottom:20px;}
+.status-online{color:#00ff88;}.status-offline{color:#ff6680;}table{width:100%;border-collapse:collapse;}th,td{padding:12px;border-bottom:1px solid #2a3a5a;}</style>
 </head>
 <body><div class="container"><div class="glass-card"><h2>Attack Node Management</h2><a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
-
-<!-- Add GitHub Node -->
 <div class="row g-4">
 <div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add GitHub Node</div><div class="card-body">
-<form method="POST" action="/admin/nodes/add_github">
-<input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
+<form method="POST" action="/admin/nodes/add_github"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
 <input type="text" name="github_token" placeholder="GitHub Token" class="form-control mb-2" required>
 <input type="text" name="github_repo" placeholder="Repo Name (default: InfernoCore)" class="form-control mb-2">
 <div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div>
-<button type="submit" class="btn btn-primary">Add GitHub Node</button>
-</form></div></div></div>
-
-<!-- Add VPS Node -->
+<button type="submit" class="btn btn-primary">Add GitHub Node</button></form></div></div></div>
 <div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add VPS Node</div><div class="card-body">
-<form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data">
-<input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
+<form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
 <input type="text" name="vps_host" placeholder="VPS Host (IP)" class="form-control mb-2" required>
 <input type="number" name="vps_port" placeholder="Port (default 22)" class="form-control mb-2" value="22">
 <input type="text" name="vps_username" placeholder="Username" class="form-control mb-2" required>
 <input type="password" name="vps_password" placeholder="Password (or leave empty for key)" class="form-control mb-2">
 <div class="mb-2"><label>SSH Private Key (.pem file) – optional</label><input type="file" name="vps_key_file" class="form-control" accept=".pem,.key"></div>
 <div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div>
-<button type="submit" class="btn btn-primary">Add VPS Node</button>
-</form></div></div></div>
+<button type="submit" class="btn btn-primary">Add VPS Node</button></form></div></div></div>
 </div>
-
-<!-- Upload Binary -->
-<div class="card bg-dark mt-4"><div class="card-header">📤 Distribute Binary (ultimate)</div><div class="card-body">
+<div class="card bg-dark mt-4"><div class="card-header">📤 Distribute Binary (primex)</div><div class="card-body">
 <form method="POST" action="/admin/upload_binary" enctype="multipart/form-data" class="row g-2">
 <div class="col-md-8"><input type="file" name="binary" class="form-control bg-dark text-white" required></div>
-<div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div>
-</form><small class="text-muted">Upload compiled 'ultimate' binary.</small></div></div>
-
-<!-- Nodes Table -->
+<div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div></form><small class="text-muted">Upload compiled 'primex' binary.</small></div></div>
 <div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead>
-<tbody>
-{% for n in nodes %}
-<tr>
-  <td>{{ n.name }}</td>
-  <td>{{ n.node_type }}</td>
-  <td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td>
-  <td class="{% if n.status_detail=='active' %}status-online{% else %}status-offline{% endif %}">{{ n.status_detail|default('unknown') }}</td>
-  <td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td>
-  <td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td>
-  <td>
-    {% set node_id = n._id if USE_MONGO else n.id %}
-    <!-- Check -->
-    <form method="POST" action="/admin/nodes/{{ node_id }}/check" style="display:inline-block; margin-right:4px;">
-      <button type="submit" class="btn btn-sm btn-info">Check</button>
-    </form>
-    <!-- Toggle -->
-    <form method="POST" action="/admin/nodes/{{ node_id }}/toggle" style="display:inline-block; margin-right:4px;">
-      <button type="submit" class="btn btn-sm btn-warning">Toggle</button>
-    </form>
-    <!-- Delete -->
-    <form method="POST" action="/admin/nodes/{{ node_id }}/delete" style="display:inline-block;" onsubmit="return confirm('Delete this node?');">
-      <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-    </form>
-  </td>
-</tr>
-{% endfor %}
-</tbody></table></div>
-
-</div></div></body></html>
+<tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td>
+<td class="{% if n.status_detail=='active' %}status-online{% else %}status-offline{% endif %}">{{ n.status_detail|default('unknown') }}</td>
+<td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td>
+<td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td>
+<td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form>
+<form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form>
+<form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div></body></html>
 '''
 
 ADMIN_KEYS_HTML = '''
