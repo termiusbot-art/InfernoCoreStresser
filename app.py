@@ -6690,6 +6690,7 @@ ADMIN_MANAGE_HTML = '''
   --text: #f0d0d8;
   --muted: rgba(220,170,185,0.45);
   --radius: 20px;
+  --panel-radius: 28px;
 }
 
 body {
@@ -6725,7 +6726,7 @@ body {
 
 .container { position: relative; z-index: 10; max-width: 1200px; margin: 0 auto; }
 
-/* Topbar */
+/* Topbar with animated icon */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
@@ -6742,6 +6743,23 @@ body {
 }
 .back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
 
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
 .page-title {
   font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
@@ -6766,12 +6784,39 @@ body {
 }
 .section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
 
-/* Panel */
+/* Panels with corner accents */
 .panel {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden; margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .panel-header {
   padding: 14px 22px; background: rgba(255,40,100,0.07);
@@ -6780,7 +6825,7 @@ body {
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
   display: flex; align-items: center; gap: 8px;
 }
-.panel-body { padding: 24px; }
+.panel-body { padding: 24px; position: relative; z-index: 1; }
 
 /* Form grid */
 .create-grid {
@@ -6840,6 +6885,19 @@ body {
 .super-row label { font-size: 14px; font-weight: 600; color: var(--yellow); cursor: pointer; }
 .super-note { font-size: 12px; color: var(--muted); margin-left: auto; }
 
+/* Info box */
+.info-box {
+  background: rgba(255,200,0,0.04);
+  border: 1px solid rgba(255,200,0,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--muted);
+}
+.info-box i { color: var(--yellow); flex-shrink: 0; margin-top: 2px; }
+.info-box strong { color: var(--accent2); }
+
 /* Buttons */
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
@@ -6847,12 +6905,21 @@ body {
   font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
   transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+  position: relative; overflow: hidden;
 }
 .btn-create {
   background: linear-gradient(135deg, var(--accent), #cc2255);
   color: #fff; box-shadow: 0 4px 16px rgba(255,40,100,0.25);
   padding: 11px 24px;
 }
+.btn-create::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-create:hover::before { transform: translateX(100%) skewX(-15deg); }
 .btn-create:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
 
 .btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
@@ -6861,6 +6928,14 @@ body {
 .btn-del    { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
 .btn-del:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
 .btn-save   { background: linear-gradient(135deg, var(--accent), #cc2255); color: #fff; }
+.btn-save::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-save:hover::before { transform: translateX(100%) skewX(-15deg); }
 .btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,40,100,0.35); }
 
 /* Table */
@@ -6915,7 +6990,7 @@ tbody tr:last-child td { border-bottom: none; }
 .action-group { display: flex; align-items: center; gap: 6px; }
 .action-group form { display: inline; }
 
-/* Modal overlay */
+/* Modal overlay with corner accents */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
@@ -6925,15 +7000,42 @@ tbody tr:last-child td { border-bottom: none; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
 .modal-box {
   background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
   width: 100%; max-width: 540px; overflow: hidden;
   transform: translateY(20px) scale(0.97); transition: transform 0.25s ease;
+  position: relative;
+}
+.modal-box::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.modal-box::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .modal-overlay.open .modal-box { transform: translateY(0) scale(1); }
 .modal-header {
   padding: 18px 24px; background: rgba(255,40,100,0.07);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 3;
 }
 .modal-title { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; color: var(--accent2); }
 .modal-close {
@@ -6941,12 +7043,14 @@ tbody tr:last-child td { border-bottom: none; }
   cursor: pointer; padding: 0; line-height: 1; transition: color 0.2s;
 }
 .modal-close:hover { color: var(--accent); }
-.modal-body { padding: 24px; }
-.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+.modal-body { padding: 24px; position: relative; z-index: 3; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; position: relative; z-index: 3; }
 
 /* Empty state */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
 .empty-icon  { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
 @media (max-width: 768px) {
   .create-grid { grid-template-columns: 1fr; }
@@ -6966,10 +7070,13 @@ tbody tr:last-child td { border-bottom: none; }
 
 <div class="container">
 
-  <!-- Topbar -->
+  <!-- Topbar with animated shield-cog icon -->
   <div class="topbar">
     <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <h1 class="page-title">Manage Admins</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-user-shield"></i></div>
+      <h1 class="page-title">Manage Admins</h1>
+    </div>
     <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
 
@@ -6978,6 +7085,13 @@ tbody tr:last-child td { border-bottom: none; }
   <div class="panel" style="animation: fadeUp 0.6s ease 0.1s both;">
     <div class="panel-header"><i class="fas fa-shield-alt"></i> New Administrator</div>
     <div class="panel-body">
+
+      <!-- Info box about admin permissions -->
+      <div class="info-box">
+        <i class="fas fa-info-circle"></i>
+        <div><strong>Super Admins</strong> bypass all permission checks and have unrestricted access. Regular admins require explicit permissions for each section.</div>
+      </div>
+
       <form method="POST" action="/admin/manage/add">
 
         <div class="create-grid">
@@ -7105,7 +7219,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 </div><!-- /container -->
 
-<!-- Edit Modals -->
+<!-- Edit Modals with corner accents -->
 {% for admin in admins %}
 <div class="modal-overlay" id="modal{{ loop.index }}">
   <div class="modal-box">
@@ -7166,9 +7280,6 @@ document.addEventListener('keydown', e => {
 });
 </script>
 
-<style>
-@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-</style>
 </body>
 </html>
 '''
