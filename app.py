@@ -2648,95 +2648,463 @@ REGISTER_HTML = '''
 
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Dashboard • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#eef5ff; overflow-x:hidden;}
-.sidebar{position:fixed;left:0;top:0;width:280px;height:100%;background:rgba(5,10,20,0.95);backdrop-filter:blur(16px);border-right:1px solid rgba(0,255,200,0.2);padding:30px 20px;z-index:10;transition:transform 0.3s ease;}
-.main{margin-left:280px;padding:30px;position:relative;z-index:2;animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.45);backdrop-filter:blur(12px);border-radius:32px;border:1px solid rgba(0,255,200,0.2);padding:28px;margin-bottom:30px;transition:all 0.3s cubic-bezier(0.2,0.9,0.4,1.1);}
-.glass-card:hover{border-color:rgba(0,255,200,0.6);transform:translateY(-5px);box-shadow:0 15px 35px rgba(0,0,0,0.3);}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88);border:none;border-radius:60px;padding:12px 24px;font-weight:bold;color:#000;width:100%;transition:all 0.2s;}
-.btn-neon:hover{transform:scale(1.02);box-shadow:0 0 15px #00ff88;}
-.stat-number{font-size:44px;font-weight:800;background:linear-gradient(135deg,#fff,#00ffcc);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.menu-toggle{display:none;position:fixed;top:20px;left:20px;z-index:20;background:#00ffcc;border:none;padding:10px 15px;border-radius:30px;color:#000;font-size:18px;cursor:pointer;}
-.nav-link{display:block;padding:12px 20px;margin:8px 0;border-radius:40px;color:#ccd6f0;text-decoration:none;transition:0.2s;}
-.nav-link:hover,.nav-link.active{background:rgba(0,255,200,0.15);color:#00ffcc;}
-@media (max-width:800px){.sidebar{transform:translateX(-100%);width:260px;}.main{margin-left:0;padding:70px 20px 20px;}.menu-toggle{display:block;}}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #030508;
+  --surface: rgba(6, 16, 28, 0.72);
+  --surface2: rgba(4, 12, 22, 0.6);
+  --border: rgba(0, 255, 200, 0.15);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #00ffcc;
+  --accent2: #00aaff;
+  --text: #cce8e0;
+  --muted: rgba(180, 220, 210, 0.45);
+  --sidebar-w: 270px;
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Background ── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.16; pointer-events: none; z-index: 0;
+  animation: orbFloat linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#00ffcc, transparent 70%); top: -200px; left: 20px; animation-duration: 24s; }
+.orb-2 { width: 500px; height: 500px; background: radial-gradient(#00aaff, transparent 70%); bottom: -150px; right: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes orbFloat {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(30px,-20px) scale(1.05); }
+  66%  { transform: translate(-20px,15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; left: 0; top: 0;
+  width: var(--sidebar-w); height: 100%;
+  background: rgba(3, 10, 18, 0.92);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border);
+  padding: 28px 18px;
+  z-index: 50;
+  display: flex; flex-direction: column;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-logo {
+  text-align: center; margin-bottom: 32px; padding-bottom: 24px;
+  border-bottom: 1px solid var(--border2);
+}
+.logo-text {
+  font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: 2px;
+}
+.logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+/* Nav */
+.nav-section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(180,220,210,0.25);
+  padding: 0 12px; margin: 16px 0 6px;
+}
+.nav-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; margin: 3px 0;
+  border-radius: 12px; color: var(--muted);
+  text-decoration: none; font-size: 14px; font-weight: 600;
+  letter-spacing: 0.3px; transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.nav-link i { width: 18px; text-align: center; font-size: 14px; opacity: 0.7; flex-shrink: 0; }
+.nav-link:hover { color: var(--accent); background: rgba(0,255,200,0.06); border-color: rgba(0,255,200,0.1); }
+.nav-link.active {
+  color: var(--accent); background: rgba(0,255,200,0.1);
+  border-color: rgba(0,255,200,0.2);
+  box-shadow: 0 0 12px rgba(0,255,200,0.06) inset;
+}
+.nav-link.active i { opacity: 1; }
+
+/* Plan info */
+.plan-box {
+  margin-top: auto; padding-top: 20px;
+  border-top: 1px solid var(--border2);
+}
+.plan-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,255,200,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; margin-bottom: 14px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; color: var(--accent);
+}
+.plan-stat {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 13px;
+}
+.plan-stat:last-child { border-bottom: none; }
+.plan-stat-label { color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.plan-stat-label i { width: 14px; text-align: center; font-size: 12px; }
+.plan-stat-val { font-weight: 700; color: var(--text); font-family: 'Orbitron', monospace; font-size: 12px; }
+
+/* ── Mobile toggle ── */
+.menu-toggle {
+  display: none; position: fixed; top: 16px; left: 16px; z-index: 60;
+  background: var(--accent); border: none; border-radius: 10px;
+  width: 40px; height: 40px; color: #020408; font-size: 16px;
+  cursor: pointer; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,255,200,0.3);
+}
+
+/* ── Main content ── */
+.main {
+  margin-left: var(--sidebar-w);
+  padding: 32px 28px;
+  position: relative; z-index: 10;
+  animation: fadeUp 0.6s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* Page header */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+}
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.online-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.2);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--accent);
+}
+.online-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 2s ease infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section title */
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px; margin-bottom: 22px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.card:hover { border-color: rgba(0,255,200,0.3); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  margin-bottom: 22px;
+}
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 16px;
+  padding: 22px 20px; text-align: center;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: rgba(0,255,200,0.2); }
+.stat-number {
+  font-family: 'Orbitron', monospace; font-size: 40px; font-weight: 900;
+  background: linear-gradient(135deg, #fff, var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1;
+}
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* Progress bar */
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+.progress-pct { font-family: 'Orbitron', monospace; font-size: 13px; color: var(--accent); }
+.progress-track {
+  height: 8px; background: rgba(255,255,255,0.06);
+  border-radius: 20px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 20px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+  box-shadow: 0 0 12px rgba(0,255,200,0.4);
+}
+
+/* Upgrade button */
+.btn-upgrade {
+  display: block; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 12px;
+  color: #020408; font-family: 'Orbitron', monospace;
+  font-size: 12px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; text-decoration: none; text-align: center;
+  cursor: pointer; transition: all 0.25s ease; margin-top: 20px;
+  position: relative; overflow: hidden;
+}
+.btn-upgrade::before {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-upgrade:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-upgrade:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,255,200,0.35); }
+
+/* Redeem form */
+.redeem-row {
+  display: flex; gap: 12px; margin: 16px 0 8px; flex-wrap: wrap;
+}
+.redeem-input {
+  flex: 1; min-width: 180px;
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 13px 18px;
+  color: var(--text); font-family: 'Orbitron', monospace; font-size: 12px;
+  letter-spacing: 1px; outline: none; transition: all 0.2s;
+}
+.redeem-input::placeholder { color: rgba(180,220,210,0.2); font-family: 'Rajdhani',sans-serif; font-size:14px; letter-spacing:0.5px; }
+.redeem-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,255,200,0.1); background: rgba(0,255,200,0.03); }
+.btn-redeem {
+  padding: 13px 24px; background: rgba(0,255,200,0.12);
+  border: 1px solid rgba(0,255,200,0.3); border-radius: 12px;
+  color: var(--accent); font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.btn-redeem:hover { background: rgba(0,255,200,0.2); transform: translateY(-1px); }
+.redeem-note { font-size: 12px; color: var(--muted); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); background: rgba(0,255,200,0.04); }
+th {
+  padding: 11px 14px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); text-align: left; white-space: nowrap;
+}
+td {
+  padding: 13px 14px; font-size: 13px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
+}
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: rgba(0,255,200,0.03); }
+tbody tr:last-child td { border-bottom: none; }
+
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.s-done { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.25); color: #00ffaa; }
+.s-running { background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.25); color: var(--accent2); animation: blink 1.5s infinite; }
+
+.target-cell { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--accent2); }
+.method-cell { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon  { font-size: 36px; opacity: 0.3; margin-bottom: 10px; }
+
+/* Card description */
+.card-desc { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+
+/* Responsive */
+@media (max-width: 800px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; padding: 70px 16px 24px; }
+  .menu-toggle { display: flex; }
+  .stats-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- Mobile toggle -->
 <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+<!-- Sidebar -->
 <div class="sidebar" id="sidebar">
-    <div class="text-center mb-4"><h2 style="color:#00ffcc;">🚀 STRESSER</h2></div>
-    <nav>
-        <a href="/dashboard" class="nav-link active"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
-        <a href="/attack" class="nav-link"><i class="fas fa-bolt me-2"></i> Attack Hub</a>
-        <a href="/products" class="nav-link"><i class="fas fa-shopping-cart me-2"></i> Products</a>
-        <a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
-    </nav>
-    <div class="mt-5 pt-3 border-top">
-        <p><i class="fas fa-gem me-2"></i> {{ user.plan }}</p>
-        <p><i class="fas fa-hourglass-half me-2"></i> Max Duration: {{ user.max_duration }}s</p>
-        <p><i class="fas fa-layer-group me-2"></i> Concurrent: {{ user.max_concurrent }}</p>
-        <p><i class="fas fa-microchip me-2"></i> Max Threads: {{ user.max_threads }}</p>
-        {% if user.expiry %}<p><i class="far fa-calendar-alt me-2"></i> Expires: {{ user.expiry.strftime('%Y-%m-%d') }}</p>{% endif %}
+  <div class="sidebar-logo">
+    <div class="logo-text">⚡ STRESSER</div>
+    <div class="logo-sub">Control Panel</div>
+  </div>
+
+  <div class="nav-section-label">Navigation</div>
+  <nav>
+    <a href="/dashboard" class="nav-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+    <a href="/attack" class="nav-link"><i class="fas fa-bolt"></i> Attack Hub</a>
+    <a href="/products" class="nav-link"><i class="fas fa-layer-group"></i> Products</a>
+    <a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </nav>
+
+  <div class="plan-box">
+    <div class="plan-badge">⚡ {{ user.plan }}</div>
+    <div class="plan-stat">
+      <span class="plan-stat-label"><i class="fas fa-hourglass-half"></i> Duration</span>
+      <span class="plan-stat-val">{{ user.max_duration }}s</span>
     </div>
+    <div class="plan-stat">
+      <span class="plan-stat-label"><i class="fas fa-layer-group"></i> Concurrent</span>
+      <span class="plan-stat-val">{{ user.max_concurrent }}</span>
+    </div>
+    <div class="plan-stat">
+      <span class="plan-stat-label"><i class="fas fa-microchip"></i> Threads</span>
+      <span class="plan-stat-val">{{ user.max_threads }}</span>
+    </div>
+    {% if user.expiry %}
+    <div class="plan-stat">
+      <span class="plan-stat-label"><i class="far fa-calendar-alt"></i> Expires</span>
+      <span class="plan-stat-val">{{ user.expiry.strftime('%Y-%m-%d') }}</span>
+    </div>
+    {% endif %}
+  </div>
 </div>
+
+<!-- Main -->
 <div class="main">
-    <div class="glass-card">
-        <div class="d-flex justify-content-between align-items-center">
-            <h3><i class="fas fa-chart-line me-2"></i> Network Status</h3>
-            <span class="badge bg-info">{{ slots_used }} / {{ max_slots }} Slots Used</span>
-        </div>
-        <div class="mt-3">
-            <div class="d-flex justify-content-between"><span>Network Load</span><span>{{ (slots_used/max_slots*100)|round(0) if max_slots>0 else 0 }}%</span></div>
-            <div class="progress mt-2" style="height:8px;"><div class="progress-bar bg-info" style="width: {{ (slots_used/max_slots*100) if max_slots>0 else 0 }}%; transition:width 1s ease;"></div></div>
-        </div>
-        <div class="row mt-4">
-            <div class="col-6 text-center"><div class="stat-number">{{ slots_used }}</div><div>Slots Used</div></div>
-            <div class="col-6 text-center"><div class="stat-number">{{ max_slots }}</div><div>Max Slots</div></div>
-        </div>
-        <div class="mt-4"><a href="/products" class="btn-neon">⚡ Upgrade Now</a></div>
+
+  <div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <div class="online-pill"><div class="online-dot"></div> Online</div>
+  </div>
+
+  <!-- Network Status -->
+  <div class="section-title"><i class="fas fa-chart-line"></i> Network Status</div>
+  <div class="card">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-number">{{ slots_used }}</div>
+        <div class="stat-label">Slots Used</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ max_slots }}</div>
+        <div class="stat-label">Max Slots</div>
+      </div>
     </div>
-    <div class="glass-card">
-        <h3><i class="fas fa-key me-2"></i> Redeem Access Key</h3>
-        <p>Have a premium key? Redeem it here to upgrade your plan instantly.</p>
-        <form method="POST" action="/redeem">
-            <div class="input-group">
-                <input type="text" name="key" class="form-control bg-dark text-white" placeholder="Enter your key" required>
-                <button type="submit" class="btn-neon" style="width:auto; padding:12px 30px; border-radius:60px;">Redeem</button>
-            </div>
-        </form>
-        <small class="text-muted">Key will be applied to your current account.</small>
+
+    <div class="progress-header">
+      <span>Network Load</span>
+      <span class="progress-pct">{{ (slots_used/max_slots*100)|round(0) if max_slots>0 else 0 }}%</span>
     </div>
-    <div class="glass-card">
-        <h3><i class="fas fa-history me-2"></i> Recent Attacks</h3>
-        <div class="table-responsive">
-            <table class="table table-dark table-hover">
-                <thead><tr><th>Target</th><th>Port</th><th>Duration</th><th>Method</th><th>Mode</th><th>Threads</th><th>Status</th><th>Time</th></tr></thead>
-                <tbody>
-                {% for a in attacks %}
-                <tr><td>{{ a.target }}</td><td>{{ a.port }}</td><td>{{ a.duration }}s</td><td>{{ a.method }}</td><td>{{ a.mode }}</td><td>{{ a.threads }}</td><td><span class="badge bg-success">{{ a.status }}</span></td><td>{{ a.timestamp.strftime('%H:%M:%S') }}</td></tr>
-                {% else %}
-                <tr><td colspan="8" class="text-center">No attacks yet</td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width: {{ (slots_used/max_slots*100) if max_slots>0 else 0 }}%;"></div>
     </div>
+
+    <a href="/products" class="btn-upgrade">⚡ Upgrade Plan</a>
+  </div>
+
+  <!-- Redeem Key -->
+  <div class="section-title"><i class="fas fa-key"></i> Redeem Key</div>
+  <div class="card">
+    <p class="card-desc">Have a premium access key? Redeem it to upgrade your plan instantly.</p>
+    <form method="POST" action="/redeem">
+      <div class="redeem-row">
+        <input type="text" name="key" class="redeem-input" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn-redeem"><i class="fas fa-unlock" style="margin-right:6px;"></i>Redeem</button>
+      </div>
+    </form>
+    <div class="redeem-note">Key will be applied to your current account.</div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="section-title"><i class="fas fa-history"></i> Recent Activity</div>
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Port</th>
+            <th>Duration</th>
+            <th>Method</th>
+            <th>Mode</th>
+            <th>Threads</th>
+            <th>Status</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attacks %}
+          <tr>
+            <td class="target-cell">{{ a.target }}</td>
+            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.port }}</td>
+            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.duration }}s</td>
+            <td class="method-cell">{{ a.method }}</td>
+            <td class="method-cell">{{ a.mode }}</td>
+            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.threads }}</td>
+            <td>
+              <span class="status-badge s-done">{{ a.status }}</span>
+            </td>
+            <td style="font-size:12px;color:var(--muted);font-family:'Orbitron',monospace;">{{ a.timestamp.strftime('%H:%M:%S') }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-history"></i></div>
+                No recent activity
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
-<script>document.getElementById('menuToggle').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});</script>
-</body></html>
+
+<script>
+const toggle = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+document.addEventListener('click', e => {
+  if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggle) {
+    sidebar.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
+
 '''
 
 ATTACK_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Attack Hub • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<html><head><title>Attack Hub • </title><meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -2797,7 +3165,7 @@ PRODUCTS_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Plans • STRESSER</title>
+<title>Plans • </title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -3275,7 +3643,7 @@ REDEEM_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Redeem Key • STRESSER</title>
+<title>Redeem Key • </title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
@@ -3639,7 +4007,7 @@ ADMIN_LOGIN_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Admin Login • STRESSER</title>
+<title>Admin Login • </title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
@@ -4059,7 +4427,7 @@ input:focus {
 
 ADMIN_DASHBOARD_ENHANCED_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Admin Dashboard • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<html><head><title>Admin Dashboard • </title><meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -5184,119 +5552,516 @@ document.addEventListener('DOMContentLoaded', loadNodes);
 
 ADMIN_MANAGE_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Manage Admins • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Manage Admins • Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    body { background: #0a0a1a; color: #fff; padding: 20px; }
-    .glass-card { background: rgba(15,25,45,0.45); border-radius: 24px; padding: 20px; margin-bottom: 20px; }
-    .btn-neon { background: linear-gradient(90deg,#00b377,#00cc88); border: none; border-radius: 40px; padding: 8px 20px; font-weight: bold; color: #000; }
-    .btn-danger { background: #ff3355; border: none; color: #fff; }
-    .btn-warning { background: #ffaa00; color: #000; }
-    label { color: #ccd6f0; font-weight: 500; }
-    .form-control, .form-select { background: rgba(0,0,0,0.5) !important; border: 1px solid #2a3a5a !important; color: white !important; }
-    .form-control::placeholder { color: #8899aa !important; opacity: 0.7; }
-    .form-check-label { color: #ccd6f0; }
-    .card-header { color: #fff; font-weight: 600; }
-    small { color: #8899aa !important; }
-    .text-muted { color: #a0b3cc !important; opacity: 0.9; }
-    .modal-content { background: #0a0a1a; color: #fff; }
-    .table { color: #fff; }
-    .btn-close { filter: invert(1); }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --surface2: rgba(10, 4, 18, 0.6);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --purple: #aa66ff;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1200px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section title */
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 24px;
+}
+.panel-header {
+  padding: 14px 22px; background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 24px; }
+
+/* Form grid */
+.create-grid {
+  display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px;
+  align-items: end; margin-bottom: 20px;
+}
+
+.field { }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.form-input, .form-select {
+  width: 100%; background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 10px;
+  padding: 11px 16px; color: var(--text);
+  font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 500;
+  outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+
+/* Permissions grid */
+.perms-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.perms-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.perm-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 10px 14px; cursor: pointer;
+  transition: all 0.2s; user-select: none;
+}
+.perm-item:hover { border-color: rgba(255,40,100,0.25); background: rgba(255,40,100,0.05); }
+.perm-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.perm-item label { font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: color 0.2s; }
+.perm-item:has(input:checked) { border-color: rgba(255,40,100,0.35); background: rgba(255,40,100,0.08); }
+.perm-item:has(input:checked) label { color: var(--accent2); }
+
+/* Super admin row */
+.super-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,200,0,0.05); border: 1px solid rgba(255,200,0,0.15);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+}
+.super-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--yellow); cursor: pointer; }
+.super-row label { font-size: 14px; font-weight: 600; color: var(--yellow); cursor: pointer; }
+.super-note { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 22px; border: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+}
+.btn-create {
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  color: #fff; box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+  padding: 11px 24px;
+}
+.btn-create:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+
+.btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
+.btn-edit   { background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
+.btn-edit:hover { background: rgba(255,200,0,0.22); transform: translateY(-1px); }
+.btn-del    { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+.btn-del:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+.btn-save   { background: linear-gradient(135deg, var(--accent), #cc2255); color: #fff; }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,40,100,0.35); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(255,40,100,0.06); border-bottom: 1px solid var(--border); }
+th {
+  padding: 12px 16px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); text-align: left; white-space: nowrap;
+}
+td {
+  padding: 14px 16px; font-size: 14px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
+}
+tbody tr { transition: background 0.2s; }
+tbody tr:hover { background: rgba(255,40,100,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Admin name */
+.admin-name {
+  display: flex; align-items: center; gap: 10px;
+}
+.admin-avatar {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.2), rgba(153,0,255,0.2));
+  border: 1px solid rgba(255,40,100,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--accent2);
+  font-family: 'Orbitron', monospace;
+  flex-shrink: 0;
+}
+.admin-uname { font-weight: 700; color: var(--text); }
+
+/* Super badge */
+.super-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.super-yes { background: rgba(255,200,0,0.1); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
+.super-no  { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--muted); }
+
+/* Permission tags */
+.perm-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.perm-tag {
+  padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.2); color: var(--blue);
+}
+.perm-tag-none { color: rgba(255,255,255,0.2); font-size: 13px; }
+
+.action-group { display: flex; align-items: center; gap: 6px; }
+.action-group form { display: inline; }
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  width: 100%; max-width: 540px; overflow: hidden;
+  transform: translateY(20px) scale(0.97); transition: transform 0.25s ease;
+}
+.modal-overlay.open .modal-box { transform: translateY(0) scale(1); }
+.modal-header {
+  padding: 18px 24px; background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; color: var(--accent2); }
+.modal-close {
+  background: none; border: none; color: var(--muted); font-size: 18px;
+  cursor: pointer; padding: 0; line-height: 1; transition: color 0.2s;
+}
+.modal-close:hover { color: var(--accent); }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-icon  { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+@media (max-width: 768px) {
+  .create-grid { grid-template-columns: 1fr; }
+  .perms-grid  { grid-template-columns: 1fr 1fr; }
+  .topbar { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .perms-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
-<body><div class="container">
-<div class="glass-card"><h2><i class="fas fa-user-shield me-2"></i>Manage Administrators</h2>
-<a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
+<body>
 
-<!-- Add New Admin -->
-<div class="card bg-dark mb-4">
-  <div class="card-header">➕ Create New Admin</div>
-  <div class="card-body">
-    <form method="POST" action="/admin/manage/add">
-      <div class="row">
-        <div class="col-md-4">
-          <label class="form-label">Username</label>
-          <input type="text" name="username" class="form-control" placeholder="Enter username" required>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Enter password" required>
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-          <div class="form-check me-3 mb-2">
-            <input type="checkbox" name="is_super" class="form-check-input" id="superCheck">
-            <label class="form-check-label" for="superCheck">Super Admin</label>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <h1 class="page-title">Manage Admins</h1>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
+
+  <!-- Create Admin -->
+  <div class="section-title"><i class="fas fa-user-plus"></i> Create New Admin</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.1s both;">
+    <div class="panel-header"><i class="fas fa-shield-alt"></i> New Administrator</div>
+    <div class="panel-body">
+      <form method="POST" action="/admin/manage/add">
+
+        <div class="create-grid">
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" class="form-input" placeholder="Enter username" required autocomplete="off">
           </div>
-          <button type="submit" class="btn-neon">Create Admin</button>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" class="form-input" placeholder="Enter password" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-create"><i class="fas fa-plus"></i> Create</button>
+          </div>
         </div>
+
+        <div class="super-row">
+          <input type="checkbox" name="is_super" id="superCheck">
+          <label for="superCheck">👑 Super Admin</label>
+          <span class="super-note">Super admins inherit all permissions automatically</span>
+        </div>
+
+        <div class="perms-label"><i class="fas fa-lock"></i> Permissions</div>
+        <div class="perms-grid">
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="dashboard" id="p_dashboard">
+            <label for="p_dashboard"><i class="fas fa-tachometer-alt" style="margin-right:6px;opacity:0.6;"></i>Dashboard</label>
+          </div>
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="nodes" id="p_nodes">
+            <label for="p_nodes"><i class="fas fa-server" style="margin-right:6px;opacity:0.6;"></i>Nodes</label>
+          </div>
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="keys" id="p_keys">
+            <label for="p_keys"><i class="fas fa-key" style="margin-right:6px;opacity:0.6;"></i>Keys</label>
+          </div>
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="settings" id="p_settings">
+            <label for="p_settings"><i class="fas fa-cog" style="margin-right:6px;opacity:0.6;"></i>Settings</label>
+          </div>
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="test_attack" id="p_test">
+            <label for="p_test"><i class="fas fa-bolt" style="margin-right:6px;opacity:0.6;"></i>Test Attack</label>
+          </div>
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="manage_admins" id="p_manage">
+            <label for="p_manage"><i class="fas fa-user-shield" style="margin-right:6px;opacity:0.6;"></i>Manage Admins</label>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Admins Table -->
+  <div class="section-title"><i class="fas fa-users-cog"></i> Existing Administrators</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.2s both;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Administrator</th>
+            <th>Super Admin</th>
+            <th>Permissions</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for admin in admins %}
+          <tr>
+            <td>
+              <div class="admin-name">
+                <div class="admin-avatar">{{ admin.username[0]|upper }}</div>
+                <span class="admin-uname">{{ admin.username }}</span>
+              </div>
+            </td>
+            <td>
+              {% if admin.is_super %}
+                <span class="super-badge super-yes">👑 Super</span>
+              {% else %}
+                <span class="super-badge super-no">Standard</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if admin.permissions %}
+                <div class="perm-tags">
+                  {% for p in admin.permissions %}
+                    <span class="perm-tag">{{ p }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="perm-tag-none">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:13px; color:var(--muted);">
+              {{ admin.created_at.strftime('%Y-%m-%d') if admin.created_at else '—' }}
+            </td>
+            <td>
+              <div class="action-group">
+                <button class="btn btn-sm btn-edit" onclick="openModal('modal{{ loop.index }}')">
+                  <i class="fas fa-pen"></i> Edit
+                </button>
+                <form method="POST" action="/admin/manage/delete/{{ admin._id if USE_MONGO else admin.id }}" onsubmit="return confirm('Delete admin {{ admin.username }}? This cannot be undone.')">
+                  <button type="submit" class="btn btn-sm btn-del"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <div class="empty-icon">👤</div>
+                No administrators found.
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Edit Modals -->
+{% for admin in admins %}
+<div class="modal-overlay" id="modal{{ loop.index }}">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-user-edit" style="margin-right:8px;"></i>Edit — {{ admin.username }}</div>
+      <button class="modal-close" onclick="closeModal('modal{{ loop.index }}')">✕</button>
+    </div>
+    <form method="POST" action="/admin/manage/edit/{{ admin._id if USE_MONGO else admin.id }}">
+      <div class="modal-body">
+
+        <div class="super-row" style="margin-bottom:20px;">
+          <input type="checkbox" name="is_super" id="es_{{ loop.index }}" {% if admin.is_super %}checked{% endif %}>
+          <label for="es_{{ loop.index }}">👑 Super Admin</label>
+          <span class="super-note">All permissions auto-granted</span>
+        </div>
+
+        <div class="perms-label"><i class="fas fa-lock"></i> Permissions</div>
+        <div class="perms-grid">
+          {% set all_perms = [('dashboard','Dashboard','tachometer-alt'), ('nodes','Nodes','server'), ('keys','Keys','key'), ('settings','Settings','cog'), ('test_attack','Test Attack','bolt'), ('manage_admins','Manage Admins','user-shield')] %}
+          {% for val, label, icon in all_perms %}
+          <div class="perm-item">
+            <input type="checkbox" name="permissions" value="{{ val }}" id="ep_{{ loop.index }}_{{ val }}" {% if val in admin.permissions %}checked{% endif %}>
+            <label for="ep_{{ loop.index }}_{{ val }}"><i class="fas fa-{{ icon }}" style="margin-right:6px;opacity:0.6;"></i>{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+
       </div>
-      <div class="mt-3">
-        <label class="form-label">Permissions:</label>
-        <div class="row">
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="dashboard" class="form-check-input" id="perm_dashboard"><label class="form-check-label" for="perm_dashboard"> Dashboard</label></div></div>
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="nodes" class="form-check-input" id="perm_nodes"><label class="form-check-label" for="perm_nodes"> Nodes</label></div></div>
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="keys" class="form-check-input" id="perm_keys"><label class="form-check-label" for="perm_keys"> Keys</label></div></div>
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="settings" class="form-check-input" id="perm_settings"><label class="form-check-label" for="perm_settings"> Settings</label></div></div>
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="test_attack" class="form-check-input" id="perm_test"><label class="form-check-label" for="perm_test"> Test Attack</label></div></div>
-          <div class="col-md-2"><div class="form-check"><input type="checkbox" name="permissions" value="manage_admins" class="form-check-input" id="perm_manage"><label class="form-check-label" for="perm_manage"> Manage Admins</label></div></div>
-        </div>
-        <small class="text-muted">Super Admins have all permissions automatically.</small>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-del" onclick="closeModal('modal{{ loop.index }}')">Cancel</button>
+        <button type="submit" class="btn btn-sm btn-save"><i class="fas fa-save"></i> Save Changes</button>
       </div>
     </form>
   </div>
 </div>
+{% endfor %}
 
-<!-- Existing Admins -->
-<h4>Existing Administrators</h4>
-<table class="table table-dark">
-  <thead><tr><th>Username</th><th>Super Admin</th><th>Permissions</th><th>Created</th><th>Actions</th></tr></thead>
-  <tbody>
-  {% for admin in admins %}
-  <tr>
-    <td>{{ admin.username }}</td>
-    <td>{% if admin.is_super %}👑 Yes{% else %}❌ No{% endif %}</td>
-    <td>{{ admin.permissions|join(', ') if admin.permissions else 'None' }}</td>
-    <td>{{ admin.created_at.strftime('%Y-%m-%d') if admin.created_at else 'N/A' }}</td>
-    <td>
-      <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ loop.index }}">Edit</button>
-      <form method="POST" action="/admin/manage/delete/{{ admin._id if USE_MONGO else admin.id }}" style="display:inline" onsubmit="return confirm('Delete this admin?');">
-        <button class="btn btn-sm btn-danger">Delete</button>
-      </form>
-    </td>
-  </tr>
-  <!-- Edit Modal -->
-  <div class="modal fade" id="editModal{{ loop.index }}" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content bg-dark text-white">
-      <form method="POST" action="/admin/manage/edit/{{ admin._id if USE_MONGO else admin.id }}">
-      <div class="modal-header"><h5>Edit {{ admin.username }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <div class="form-check mb-3"><input type="checkbox" name="is_super" class="form-check-input" {% if admin.is_super %}checked{% endif %}><label class="form-check-label">Super Admin</label></div>
-        <label class="form-label">Permissions:</label>
-        <div class="row">
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="dashboard" class="form-check-input" {% if 'dashboard' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Dashboard</label></div></div>
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="nodes" class="form-check-input" {% if 'nodes' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Nodes</label></div></div>
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="keys" class="form-check-input" {% if 'keys' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Keys</label></div></div>
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="settings" class="form-check-input" {% if 'settings' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Settings</label></div></div>
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="test_attack" class="form-check-input" {% if 'test_attack' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Test Attack</label></div></div>
-          <div class="col-6"><div class="form-check"><input type="checkbox" name="permissions" value="manage_admins" class="form-check-input" {% if 'manage_admins' in admin.permissions %}checked{% endif %}> <label class="form-check-label">Manage Admins</label></div></div>
-        </div>
-      </div>
-      <div class="modal-footer"><button type="submit" class="btn-neon">Save</button></div>
-      </form>
-    </div></div>
-  </div>
-  {% endfor %}
-  </tbody>
-</table>
-</div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body></html>
+<script>
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+// Close on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+  }
+});
+</script>
+
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</body>
+</html>
 '''
 
 ADMIN_API_KEYS_HTML = '''
 <!DOCTYPE html>
-<html><head><title>API Keys • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<html><head><title>API Keys • </title><meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
