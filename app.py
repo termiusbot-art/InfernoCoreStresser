@@ -4451,7 +4451,7 @@ ADMIN_DASHBOARD_ENHANCED_HTML = '''
   --purple: #aa66ff;
   --text: #f0d0d8;
   --muted: rgba(220,170,185,0.45);
-  --radius: 20px;
+  --radius: 28px;
 }
 
 body {
@@ -4496,6 +4496,23 @@ body {
 }
 @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
 
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
 .page-title {
   font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
@@ -4512,7 +4529,7 @@ body {
 .badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
-/* Quick-link pills */
+/* Quick‐links */
 .quick-links {
   display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;
   animation: fadeDown 0.5s ease 0.1s both;
@@ -4544,9 +4561,32 @@ body {
   padding: 20px 24px; margin-bottom: 24px;
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 16px;
+  position: relative;
   animation: fadeUp 0.6s ease 0.15s both;
 }
-.status-left { display: flex; align-items: center; gap: 14px; }
+.status-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.status-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.status-left { display: flex; align-items: center; gap: 14px; z-index: 1; }
 .status-pill {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 16px; border-radius: 20px;
@@ -4558,9 +4598,9 @@ body {
 .status-dot { width: 7px; height: 7px; border-radius: 50%; }
 .status-pill.idle .status-dot    { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .status-pill.attacking .status-dot { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
-.status-info { font-size: 14px; font-weight: 600; }
+.status-info { font-size: 14px; font-weight: 600; z-index: 1; }
 
-/* Stats row */
+/* Stats row with corner accents */
 .stats-row {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
   margin-bottom: 24px;
@@ -4570,44 +4610,94 @@ body {
   background: var(--surface);
   backdrop-filter: blur(18px);
   border: 1px solid var(--border);
-  border-radius: 16px; padding: 22px 18px;
-  text-align: center; transition: border-color 0.2s;
+  border-radius: 18px;
+  padding: 22px 18px;
+  text-align: center;
+  position: relative;
+  transition: border-color 0.2s;
 }
 .stat-card:hover { border-color: rgba(255,40,100,0.4); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 40px; height: 40px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 18px 0 0 0;
+  opacity: 0.7;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 40px; height: 40px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 18px 0;
+  opacity: 0.7;
+}
 .stat-number {
-  font-family: 'Orbitron', monospace; font-size: 38px; font-weight: 900;
+  font-family: 'Orbitron', monospace; font-size: 36px; font-weight: 900;
   background: linear-gradient(135deg, #fff, var(--accent2));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   line-height: 1;
 }
 .stat-label { font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; }
 
-/* Panel */
+/* Panel for node list */
 .panel {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border); border-radius: var(--radius);
   overflow: hidden; margin-bottom: 24px;
+  position: relative;
+  animation: fadeUp 0.6s ease 0.3s both;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .panel-header {
-  padding: 14px 20px; background: rgba(255,40,100,0.07);
+  padding: 14px 20px;
+  background: rgba(255,40,100,0.07);
   border-bottom: 1px solid var(--border);
   font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
   display: flex; align-items: center; gap: 8px;
 }
-.panel-body { padding: 20px 24px; }
+.panel-body { padding: 20px 24px; position: relative; z-index: 1; }
 
 /* Node row */
 .node-row {
   display: flex; align-items: center; padding: 12px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   transition: background 0.2s; gap: 16px; flex-wrap: wrap;
-  animation: fadeUp 0.4s ease both;
+  animation: fadeIn 0.4s ease both;
 }
-.node-row:hover { background: rgba(255,40,100,0.04); }
 .node-row:last-child { border-bottom: none; }
-.node-name { font-weight: 700; min-width: 140px; }
+.node-row:hover { background: rgba(255,40,100,0.04); }
+.node-name { font-weight: 700; min-width: 130px; }
 .node-type { font-size: 12px; color: var(--muted); margin-left: 4px; }
 .node-status-badge {
   display: inline-flex; align-items: center; gap: 5px;
@@ -4639,26 +4729,33 @@ body {
   color: var(--accent2);
 }
 .btn-outline:hover { background: rgba(255,40,100,0.18); transform: translateY(-1px); }
-.btn-success { background: rgba(0,255,170,0.12); border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.btn-success {
+  background: rgba(0,255,170,0.12); border: 1px solid rgba(0,255,170,0.25);
+  color: var(--green);
+}
 .btn-success:hover { background: rgba(0,255,170,0.22); transform: translateY(-1px); }
-.btn-warning { background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
-.btn-warning:hover { background: rgba(255,200,0,0.22); transform: translateY(-1px); }
-.btn-danger { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+.btn-danger {
+  background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25);
+  color: var(--accent2);
+}
 .btn-danger:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
 .btn-full { width: 100%; justify-content: center; padding: 13px; font-size: 11px; }
 
-/* Two-column actions */
+/* Two-button row */
 .actions-row {
   display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
   animation: fadeUp 0.6s ease 0.4s both;
 }
 
 /* Loading */
+.loading-placeholder {
+  text-align: center; padding: 30px; color: var(--muted);
+}
 .loading-pulse { animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-.loading-placeholder { text-align: center; padding: 30px; color: var(--muted); }
 
 @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -4682,7 +4779,10 @@ body {
 
   <!-- Topbar -->
   <div class="topbar">
-    <h1 class="page-title">Admin Dashboard</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-shield-alt"></i></div>
+      <h1 class="page-title">Admin Dashboard</h1>
+    </div>
     <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
 
@@ -4701,7 +4801,7 @@ body {
 
   <!-- Attack Status -->
   <div class="section-title"><i class="fas fa-bolt"></i> Attack Status</div>
-  <div class="status-card" id="attackStatusCard">
+  <div class="status-card">
     <div class="status-left">
       <span class="status-pill idle" id="attackStatusBadge">
         <span class="status-dot"></span> Loading...
@@ -4859,7 +4959,7 @@ async function refreshAttackStatus() {
       details.innerHTML = `Queue: ${data.queue_length} pending`;
     }
   } catch (e) {
-    // silently ignore
+    // ignore
   }
 }
 
@@ -6479,7 +6579,7 @@ ADMIN_API_KEYS_HTML = '''
   --purple: #aa66ff;
   --text: #f0d0d8;
   --muted: rgba(220,170,185,0.45);
-  --radius: 20px;
+  --radius: 28px; /* increased for corner accents to match redeem */
 }
 
 body {
@@ -6492,6 +6592,7 @@ body {
   overflow-x: hidden;
 }
 
+/* Background orbs & grid (same as redeem) */
 .bg-grid {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-image:
@@ -6515,14 +6616,12 @@ body {
 
 .container { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; }
 
-/* Topbar */
+/* Topbar with animated icon wrap */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
   animation: fadeDown 0.5s ease both;
 }
-@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
-
 .back-btn {
   display: inline-flex; align-items: center; gap: 8px;
   color: var(--muted); text-decoration: none; font-size: 13px;
@@ -6532,6 +6631,23 @@ body {
 }
 .back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
 
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
 .page-title {
   font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
@@ -6548,7 +6664,7 @@ body {
 .badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
-/* Section title */
+/* Section titles */
 .section-title {
   font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700;
   letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
@@ -6556,7 +6672,7 @@ body {
 }
 .section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
 
-/* Stats row */
+/* Stats row (cards with corner accents) */
 .stats-row {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
   margin-bottom: 24px;
@@ -6566,8 +6682,30 @@ body {
   background: var(--surface);
   backdrop-filter: blur(18px);
   border: 1px solid var(--border);
-  border-radius: 14px; padding: 18px 20px;
+  border-radius: 18px;
+  padding: 22px 20px;
   display: flex; align-items: center; gap: 14px;
+  position: relative;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 40px; height: 40px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 18px 0 0 0;
+  opacity: 0.7;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 40px; height: 40px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 18px 0;
+  opacity: 0.7;
 }
 .stat-icon {
   width: 40px; height: 40px; border-radius: 10px;
@@ -6580,26 +6718,57 @@ body {
 .stat-val { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
 .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
 
-/* Panel */
+/* Panels with corner accents */
 .panel {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden; margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .panel-header {
-  padding: 14px 20px; background: rgba(255,40,100,0.07);
+  padding: 14px 20px;
+  background: rgba(255,40,100,0.07);
   border-bottom: 1px solid var(--border);
   font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
   display: flex; align-items: center; gap: 8px;
 }
-.panel-body { padding: 24px; }
+.panel-body { padding: 24px; position: relative; z-index: 1; }
 
 /* Form grid (generate key) */
 .gen-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 16px; align-items: end;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
 }
 .field label {
   display: block; font-size: 11px; font-weight: 700;
@@ -6632,6 +6801,38 @@ body {
   gap: 16px; margin-top: 16px;
 }
 
+/* Key format hint (monospace segment display) */
+.key-format-hint {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 8px 0;
+}
+.hint-label {
+  font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
+  text-transform: uppercase; margin-right: 8px;
+}
+.key-seg {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; color: rgba(255,40,100,0.6);
+  letter-spacing: 1px;
+  background: rgba(255,40,100,0.07);
+  border: 1px solid rgba(255,40,100,0.15);
+  border-radius: 6px; padding: 4px 10px;
+}
+.key-sep { color: rgba(255,255,255,0.25); font-size: 14px; font-weight: 600; }
+
+/* Info box (like redeem) */
+.info-box {
+  background: rgba(255,200,0,0.04);
+  border: 1px solid rgba(255,200,0,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--muted);
+}
+.info-box i { color: var(--yellow); flex-shrink: 0; margin-top: 2px; }
+.info-box strong { color: var(--accent2); }
+
 /* Buttons */
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
@@ -6639,12 +6840,23 @@ body {
   font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
   transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+  position: relative; overflow: hidden;
 }
+
+/* Shimmer sweep button (same as redeem's btn-redeem) */
 .btn-generate {
   background: linear-gradient(135deg, var(--accent), #cc2255);
   color: #fff; box-shadow: 0 4px 16px rgba(255,40,100,0.25);
-  padding: 11px 22px;
+  padding: 13px 28px;
 }
+.btn-generate::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-generate:hover::before { transform: translateX(100%) skewX(-15deg); }
 .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
 
 .btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
@@ -6670,8 +6882,9 @@ tbody tr { transition: background 0.2s; }
 tbody tr:hover { background: rgba(255,40,100,0.04); }
 tbody tr:last-child td { border-bottom: none; }
 
+/* Key code (monospace) */
 .key-code {
-  font-family: 'Orbitron', monospace; font-size: 11px;
+  font-family: 'Orbitron', monospace; font-size: 12px;
   color: var(--accent2); letter-spacing: 1px;
   background: rgba(255,40,100,0.07);
   border: 1px solid rgba(255,40,100,0.15);
@@ -6714,19 +6927,22 @@ tbody tr:last-child td { border-bottom: none; }
 
 <div class="container">
 
-  <!-- Topbar -->
+  <!-- Topbar with glowing key icon -->
   <div class="topbar">
     <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <h1 class="page-title">API Key Management</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-key"></i></div>
+      <h1 class="page-title">API Key Management</h1>
+    </div>
     <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
 
-  <!-- Stats -->
+  <!-- Stats row with corner accents -->
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
       <div>
-        <div class="stat-val">{{ keys | selectattr('active') | selectattr('expires_at', 'none') | list | length + keys | selectattr('active') | selectattr('expires_at', 'ne', None) | selectattr('expires_at', 'ge', now) | list | length }}</div>
+        <div class="stat-val">{{ keys | selectattr('active') | list | length }}</div>
         <div class="stat-label">Active Keys</div>
       </div>
     </div>
@@ -6746,10 +6962,10 @@ tbody tr:last-child td { border-bottom: none; }
     </div>
   </div>
 
-  <!-- Generate New API Key -->
+  <!-- Create New API Key Panel -->
   <div class="section-title"><i class="fas fa-plus-circle"></i> Create New API Key</div>
   <div class="panel" style="animation: fadeUp 0.6s ease 0.1s both;">
-    <div class="panel-header"><i class="fas fa-key"></i> New API Credentials</div>
+    <div class="panel-header"><i class="fas fa-magic"></i> New API Credentials</div>
     <div class="panel-body">
       <form method="POST" action="/admin/api_keys/create">
         <div class="gen-grid">
@@ -6792,6 +7008,24 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
         </div>
 
+        <!-- Key format hint (monospace segment display) -->
+        <div class="key-format-hint">
+          <span class="hint-label">Generated key format:</span>
+          <span class="key-seg">XXXX</span>
+          <span class="key-sep">—</span>
+          <span class="key-seg">XXXX</span>
+          <span class="key-sep">—</span>
+          <span class="key-seg">XXXX</span>
+          <span class="key-sep">—</span>
+          <span class="key-seg">XXXX</span>
+        </div>
+
+        <!-- Info box about key usage -->
+        <div class="info-box">
+          <i class="fas fa-info-circle"></i>
+          <div>Keys are <strong>single‑use</strong> unless re‑generated. Without custom limits, they inherit the target user’s plan. All usage is logged per key.</div>
+        </div>
+
         <div style="margin-top: 20px;">
           <button type="submit" class="btn btn-generate"><i class="fas fa-magic"></i> Generate API Key</button>
         </div>
@@ -6799,7 +7033,7 @@ tbody tr:last-child td { border-bottom: none; }
     </div>
   </div>
 
-  <!-- Existing API Keys -->
+  <!-- Existing API Keys Table -->
   <div class="section-title"><i class="fas fa-list"></i> Existing API Keys</div>
   <div class="panel" style="animation: fadeUp 0.6s ease 0.2s both;">
     <div class="table-wrap">
@@ -6878,19 +7112,15 @@ tbody tr:last-child td { border-bottom: none; }
 <script>
 function toggleCustom(val) {
   const customDiv = document.getElementById('customLimits');
-  if (val === 'custom') {
-    customDiv.style.display = 'block';
-  } else {
-    customDiv.style.display = 'none';
-  }
+  customDiv.style.display = val === 'custom' ? 'block' : 'none';
 }
 function copyKey(key) {
   navigator.clipboard.writeText(key).then(() => {
     alert('Key copied!');
   });
 }
-// Initialize on load if custom preselected (unlikely, but for safety)
-if (document.getElementById('planSelect').value === 'custom') {
+// Preselect custom if loaded
+if (document.getElementById('planSelect') && document.getElementById('planSelect').value === 'custom') {
   document.getElementById('customLimits').style.display = 'block';
 }
 </script>
@@ -6899,6 +7129,541 @@ if (document.getElementById('planSelect').value === 'custom') {
 </html>
 '''
 
+ADMIN_SETTINGS_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Admin Settings • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --surface2: rgba(10, 4, 18, 0.6);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --orange: #ffaa00;
+  --purple: #aa66ff;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 28px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1100px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Panel with corner accents */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  position: relative;
+  animation: fadeUp 0.6s ease 0.1s both;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Tabs */
+.tab-nav {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  position: relative; z-index: 1;
+}
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover {
+  color: var(--accent2);
+  background: rgba(255,40,100,0.05);
+  border-color: rgba(255,40,100,0.2);
+}
+.tab-btn.active {
+  color: var(--accent2);
+  background: rgba(255,40,100,0.12);
+  border-color: rgba(255,40,100,0.3);
+}
+.tab-btn i { font-size: 12px; opacity: 0.7; }
+.tab-btn.active i { opacity: 1; }
+
+.tab-panel { display: none; position: relative; z-index: 1; }
+.tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* Section title inside panel */
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Form grid */
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 20px; margin-bottom: 20px;
+}
+.form-grid.single { grid-template-columns: 1fr; }
+
+.field { }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.field small {
+  display: block; margin-top: 5px;
+  font-size: 11px; color: var(--muted); opacity: 0.7; letter-spacing: 0.3px;
+}
+
+.form-input {
+  width: 100%; background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 10px;
+  padding: 11px 16px; color: var(--text);
+  font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 500;
+  outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+textarea.form-input { resize: vertical; font-family: 'Rajdhani', sans-serif; }
+
+/* Divider */
+.divider {
+  height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 28px 0;
+}
+
+/* Maintenance row */
+.maintenance-row {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+  background: rgba(255,200,0,0.04);
+  border: 1px solid rgba(255,200,0,0.12);
+  border-radius: 12px; padding: 16px 20px;
+}
+.maintenance-info { font-size: 14px; }
+.maintenance-status {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px;
+}
+.maint-on  { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3); color: var(--accent); }
+.maint-off { background: rgba(0,255,170,0.1);  border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); background: rgba(255,40,100,0.04); }
+th {
+  padding: 10px 14px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); text-align: left; white-space: nowrap;
+}
+td {
+  padding: 12px 14px; font-size: 13px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
+}
+tbody tr { transition: background 0.2s; }
+tbody tr:hover { background: rgba(255,40,100,0.03); }
+tbody tr:last-child td { border-bottom: none; }
+
+.db-size-row {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border2);
+  font-size: 13px; color: var(--muted);
+}
+.db-size-row strong { color: var(--text); font-family: 'Orbitron', monospace; font-size: 12px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 22px; border: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+  position: relative; overflow: hidden;
+}
+.btn-save {
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  color: #fff; box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+}
+.btn-save::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-save:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+
+.btn-warning {
+  background: linear-gradient(135deg, #ffaa00, #ff7700);
+  color: #0a0200; box-shadow: 0 4px 14px rgba(255,160,0,0.2);
+}
+.btn-warning:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,160,0,0.35); }
+
+.btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
+.btn-danger  { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.3); color: var(--accent2); }
+.btn-danger:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+.btn-primary { background: rgba(0,170,255,0.12); border: 1px solid rgba(0,170,255,0.25); color: var(--blue); }
+.btn-primary:hover { background: rgba(0,170,255,0.22); transform: translateY(-1px); }
+.btn-info { background: rgba(0,170,255,0.12); border: 1px solid rgba(0,170,255,0.25); color: var(--blue); }
+.btn-info:hover { background: rgba(0,170,255,0.22); transform: translateY(-1px); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .tab-btn { font-size: 10px; padding: 8px 12px; }
+}
+@media (max-width: 480px) {
+  .tab-nav { flex-direction: column; }
+  .tab-btn { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-cog"></i></div>
+      <h1 class="page-title">Admin Settings</h1>
+    </div>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
+
+  <!-- Main Settings Panel -->
+  <div class="panel">
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="config"><i class="fas fa-sliders-h"></i> Configuration</button>
+      <button class="tab-btn" data-tab="storage"><i class="fas fa-database"></i> Storage</button>
+      <button class="tab-btn" data-tab="security"><i class="fas fa-lock"></i> Security</button>
+      <button class="tab-btn" data-tab="broadcast"><i class="fas fa-bullhorn"></i> Broadcast</button>
+    </div>
+
+    <!-- ⚙️ Configuration Tab -->
+    <div class="tab-panel active" id="tab-config">
+      <form method="POST" action="/admin/settings/update">
+        <input type="hidden" name="action" value="update_config">
+
+        <div class="section-title"><i class="fas fa-sliders-h"></i> Global Attack Limits</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Global Cooldown (seconds)</label>
+            <input type="number" name="cooldown" class="form-input" value="{{ cooldown }}" min="0">
+            <small>Time users must wait between attacks.</small>
+          </div>
+          <div class="field">
+            <label>Max Attack Duration (seconds)</label>
+            <input type="number" name="max_duration" class="form-input" value="{{ max_duration }}" min="1">
+            <small>Absolute maximum attack time.</small>
+          </div>
+        </div>
+
+        <div class="section-title"><i class="fas fa-microchip"></i> Thread Settings</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Default Threads (new users)</label>
+            <input type="number" name="default_threads" class="form-input" value="{{ default_threads }}" min="100">
+          </div>
+          <div class="field">
+            <label>Max Threads Limit</label>
+            <input type="number" name="max_threads" class="form-input" value="{{ max_threads }}" min="100">
+            <small>Hard limit for all users.</small>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-save"><i class="fas fa-save"></i> Save Configuration</button>
+      </form>
+
+      <div class="divider"></div>
+
+      <!-- Maintenance Mode -->
+      <div class="section-title"><i class="fas fa-tools"></i> Maintenance Mode</div>
+      <div class="maintenance-row">
+        <div class="maintenance-info">
+          Status:
+          <span class="maintenance-status {{ 'maint-on' if maintenance else 'maint-off' }}">
+            <i class="fas fa-circle" style="font-size:7px;"></i>
+            {{ 'ON' if maintenance else 'OFF' }}
+          </span>
+        </div>
+        <form method="POST" action="/admin/settings/update">
+          <input type="hidden" name="action" value="toggle_maintenance">
+          <button type="submit" class="btn btn-warning"><i class="fas fa-power-off"></i> Toggle Maintenance Mode</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 💾 Storage Tab -->
+    <div class="tab-panel" id="tab-storage">
+      <div class="section-title"><i class="fas fa-database"></i> Database Statistics</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Collection</th>
+              <th>Documents</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">Users</td>
+              <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ stats.users }}</td>
+              <td>
+                <form method="POST" action="/admin/settings/clear/users" onsubmit="return confirm('Clear all non-admin users?')">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Clear</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">API Keys</td>
+              <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ stats.api_keys }}</td>
+              <td>
+                <form method="POST" action="/admin/settings/clear/api_keys" onsubmit="return confirm('Clear all API keys?')">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Clear</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Attack Logs</td>
+              <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ stats.attack_logs }}</td>
+              <td>
+                <form method="POST" action="/admin/settings/clear/attack_logs" onsubmit="return confirm('Clear all attack logs?')">
+                  <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-eraser"></i> Clear</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Attack Nodes</td>
+              <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ stats.attack_nodes }}</td>
+              <td>
+                <form method="POST" action="/admin/settings/clear/attack_nodes" onsubmit="return confirm('Clear all nodes?')">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Clear</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Generated Keys</td>
+              <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ stats.generated_keys }}</td>
+              <td>
+                <form method="POST" action="/admin/settings/clear/generated_keys" onsubmit="return confirm('Clear all keys?')">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Clear</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="db-size-row">
+        <i class="fas fa-hard-drive" style="margin-right:8px;"></i>
+        Total Database Size: <strong>{{ (stats.db_size / 1024 / 1024)|round(2) }} MB</strong>
+      </div>
+    </div>
+
+    <!-- 🔐 Security Tab -->
+    <div class="tab-panel" id="tab-security">
+      <div class="section-title"><i class="fas fa-key"></i> Change Admin Password</div>
+      <form method="POST" action="/admin/settings/update">
+        <input type="hidden" name="action" value="change_password">
+        <div class="form-grid single">
+          <div class="field">
+            <label>New Password</label>
+            <input type="password" name="new_password" class="form-input" placeholder="Enter new password" required>
+          </div>
+          <div class="field">
+            <label>Confirm Password</label>
+            <input type="password" name="confirm_password" class="form-input" placeholder="Confirm new password" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-shield-alt"></i> Update Password</button>
+      </form>
+    </div>
+
+    <!-- 📢 Broadcast Tab -->
+    <div class="tab-panel" id="tab-broadcast">
+      <div class="section-title"><i class="fas fa-bullhorn"></i> Send Message to All Users</div>
+      <form method="POST" action="/admin/settings/update">
+        <input type="hidden" name="action" value="broadcast">
+        <div class="field" style="margin-bottom:16px;">
+          <label>Message Content</label>
+          <textarea name="message" class="form-input" rows="5" placeholder="Type your broadcast message here..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-info"><i class="fas fa-paper-plane"></i> Send Broadcast</button>
+      </form>
+    </div>
+
+  </div><!-- /panel -->
+
+</div>
+
+<script>
+// Tab switching
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-tab');
+
+    // Deactivate all
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+
+    // Activate target
+    btn.classList.add('active');
+    document.getElementById('tab-' + targetId).classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
+'''
 
 # ==================== RUN ====================
 if __name__ == '__main__':
