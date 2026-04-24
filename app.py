@@ -4427,61 +4427,456 @@ input:focus {
 
 ADMIN_DASHBOARD_ENHANCED_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Admin Dashboard • </title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Admin Dashboard • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>:root{--neon:#00ffcc;--danger:#ff3366;--warning:#ffaa00;--success:#00cc88;}
-body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000);font-family:'Inter',sans-serif;color:#fff;padding:20px;}
-.glass-card{background:rgba(15,25,45,0.5);backdrop-filter:blur(12px);border-radius:24px;border:1px solid rgba(0,255,200,0.15);padding:20px;margin-bottom:20px;transition:0.3s;}
-.glass-card:hover{transform:translateY(-3px);border-color:rgba(0,255,200,0.4);box-shadow:0 10px 30px rgba(0,0,0,0.3);}
-.stat-card{text-align:center;padding:20px 10px;}
-.stat-number{font-size:36px;font-weight:800;background:linear-gradient(135deg,#fff,var(--neon));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.status-badge{padding:4px 10px;border-radius:40px;font-size:12px;font-weight:600;}
-.status-active{background:rgba(0,204,136,0.2);color:#00cc88;border:1px solid #00cc88;}
-.status-nobinary{background:rgba(255,170,0,0.2);color:#ffaa00;border:1px solid #ffaa00;}
-.status-dead{background:rgba(255,51,102,0.2);color:#ff3366;border:1px solid #ff3366;}
-.node-row{display:flex;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeIn 0.5s;}
-.node-row:hover{background:rgba(0,255,200,0.05);}
-@keyframes pulse{0%{opacity:1}50%{opacity:0.6}100%{opacity:1}}.loading-pulse{animation:pulse 1.5s infinite;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-</style></head>
-<body><div class="container-fluid">
-<div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-shield-alt me-2" style="color:var(--neon);"></i>Admin Dashboard</h2>
-<div>
-    <a href="/admin/nodes" class="btn btn-outline-info me-2"><i class="fas fa-server"></i> Nodes</a>
-    <a href="/admin/keys" class="btn btn-outline-warning me-2"><i class="fas fa-key"></i> Keys</a>
-    <a href="/admin/api_keys" class="btn btn-outline-info me-2"><i class="fas fa-key"></i> API Keys</a>
-    <a href="/admin/settings" class="btn btn-outline-secondary me-2"><i class="fas fa-cog"></i> Settings</a>
-    <a href="/admin/test-attack" class="btn btn-outline-warning me-2"><i class="fas fa-flask"></i> Test Attack</a>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --surface2: rgba(10, 4, 18, 0.6);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --orange: #ffaa00;
+  --purple: #aa66ff;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1300px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Quick-link pills */
+.quick-links {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;
+  animation: fadeDown 0.5s ease 0.1s both;
+}
+.quick-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; text-decoration: none;
+  border: 1px solid var(--border2); color: var(--muted);
+  transition: all 0.2s; white-space: nowrap;
+}
+.quick-link:hover { border-color: var(--border); color: var(--accent2); background: rgba(255,40,100,0.05); }
+.quick-link i { font-size: 12px; opacity: 0.7; }
+
+/* Section title */
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Attack status card */
+.status-card {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 24px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  animation: fadeUp 0.6s ease 0.15s both;
+}
+.status-left { display: flex; align-items: center; gap: 14px; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 20px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.status-pill.idle    { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.status-pill.attacking { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--accent); animation: blink 1s ease-in-out infinite; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.status-pill.idle .status-dot    { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-pill.attacking .status-dot { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+.status-info { font-size: 14px; font-weight: 600; }
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s ease 0.2s both;
+}
+.stat-card {
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px 18px;
+  text-align: center; transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: rgba(255,40,100,0.4); }
+.stat-number {
+  font-family: 'Orbitron', monospace; font-size: 38px; font-weight: 900;
+  background: linear-gradient(135deg, #fff, var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1;
+}
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 24px;
+}
+.panel-header {
+  padding: 14px 20px; background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 20px 24px; }
+
+/* Node row */
+.node-row {
+  display: flex; align-items: center; padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.2s; gap: 16px; flex-wrap: wrap;
+  animation: fadeUp 0.4s ease both;
+}
+.node-row:hover { background: rgba(255,40,100,0.04); }
+.node-row:last-child { border-bottom: none; }
+.node-name { font-weight: 700; min-width: 140px; }
+.node-type { font-size: 12px; color: var(--muted); margin-left: 4px; }
+.node-status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.ns-active    { background: rgba(0,255,170,0.1);  border: 1px solid rgba(0,255,170,0.25);  color: var(--green); }
+.ns-nobinary  { background: rgba(255,170,0,0.1);  border: 1px solid rgba(255,170,0,0.25);  color: var(--orange); }
+.ns-dead      { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+.ns-dot { width: 6px; height: 6px; border-radius: 50%; }
+.ns-active .ns-dot   { background: var(--green); box-shadow: 0 0 5px var(--green); animation: blink 2s infinite; }
+.ns-nobinary .ns-dot { background: var(--orange); }
+.ns-dead .ns-dot     { background: var(--accent); }
+
+.node-binary { font-size: 13px; white-space: nowrap; }
+.node-attacks { font-family: 'Orbitron', monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.node-actions { margin-left: auto; display: flex; gap: 6px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+}
+.btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
+.btn-outline {
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  color: var(--accent2);
+}
+.btn-outline:hover { background: rgba(255,40,100,0.18); transform: translateY(-1px); }
+.btn-success { background: rgba(0,255,170,0.12); border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.btn-success:hover { background: rgba(0,255,170,0.22); transform: translateY(-1px); }
+.btn-warning { background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
+.btn-warning:hover { background: rgba(255,200,0,0.22); transform: translateY(-1px); }
+.btn-danger { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+.btn-danger:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+.btn-full { width: 100%; justify-content: center; padding: 13px; font-size: 11px; }
+
+/* Two-column actions */
+.actions-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  animation: fadeUp 0.6s ease 0.4s both;
+}
+
+/* Loading */
+.loading-pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.loading-placeholder { text-align: center; padding: 30px; color: var(--muted); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .actions-row { grid-template-columns: 1fr; }
+  .node-row { flex-direction: column; align-items: flex-start; }
+  .node-actions { margin-left: 0; }
+}
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-links">
+    <a href="/admin/nodes" class="quick-link"><i class="fas fa-server"></i> Nodes</a>
+    <a href="/admin/keys" class="quick-link"><i class="fas fa-key"></i> Keys</a>
+    <a href="/admin/api_keys" class="quick-link"><i class="fas fa-key"></i> API Keys</a>
+    <a href="/admin/settings" class="quick-link"><i class="fas fa-cog"></i> Settings</a>
+    <a href="/admin/test-attack" class="quick-link"><i class="fas fa-flask"></i> Test Attack</a>
     {% if can_manage_admins %}
-    <a href="/admin/manage" class="btn btn-outline-light me-2"><i class="fas fa-user-shield"></i> Manage Admins</a>
+    <a href="/admin/manage" class="quick-link"><i class="fas fa-user-shield"></i> Manage Admins</a>
     {% endif %}
-    <a href="/admin/logout" class="btn btn-outline-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
-</div></div>
-<div class="glass-card"><h5><i class="fas fa-bolt me-2"></i>Attack Status <span id="attackStatusBadge" class="badge bg-secondary">Loading...</span></h5><div id="attackDetails" class="mt-2"></div></div>
-<div class="row g-4 mb-4">
-<div class="col-md-3"><div class="glass-card stat-card"><div class="stat-number">{{ total_users }}</div><div>Total Users</div></div></div>
-<div class="col-md-3"><div class="glass-card stat-card"><div class="stat-number">{{ total_attacks }}</div><div>Total Attacks</div></div></div>
-<div class="col-md-3"><div class="glass-card stat-card"><div class="stat-number">{{ total_nodes }}</div><div>Total Nodes</div></div></div>
-<div class="col-md-3"><div class="glass-card stat-card"><div class="stat-number">{{ active_nodes }}</div><div>Active Nodes</div></div></div>
+    <a href="/admin/logout" class="quick-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+
+  <!-- Attack Status -->
+  <div class="section-title"><i class="fas fa-bolt"></i> Attack Status</div>
+  <div class="status-card" id="attackStatusCard">
+    <div class="status-left">
+      <span class="status-pill idle" id="attackStatusBadge">
+        <span class="status-dot"></span> Loading...
+      </span>
+      <span class="status-info" id="attackDetails">—</span>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">{{ total_users }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ total_attacks }}</div>
+      <div class="stat-label">Total Attacks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ total_nodes }}</div>
+      <div class="stat-label">Total Nodes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="activeNodes">{{ active_nodes }}</div>
+      <div class="stat-label">Active Nodes</div>
+    </div>
+  </div>
+
+  <!-- Live Node Status -->
+  <div class="section-title"><i class="fas fa-server"></i> Live Node Status</div>
+  <div class="panel">
+    <div class="panel-header">
+      <i class="fas fa-network-wired"></i> Node List
+      <span style="margin-left:auto;">
+        <button class="btn btn-sm btn-outline" onclick="refreshNodeStatus()"><i class="fas fa-sync-alt"></i> Refresh</button>
+      </span>
+    </div>
+    <div class="panel-body" id="nodeList">
+      <div class="loading-placeholder loading-pulse"><i class="fas fa-spinner" style="margin-right:8px;"></i> Loading node status...</div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="actions-row">
+    <button class="btn btn-full btn-success" onclick="testAllNodes()"><i class="fas fa-vial"></i> Test All Nodes</button>
+    <button class="btn btn-full btn-danger" onclick="stopAttack()"><i class="fas fa-stop"></i> Stop All Attacks</button>
+  </div>
+
 </div>
-<div class="glass-card"><div class="d-flex justify-content-between align-items-center mb-3"><h5><i class="fas fa-server me-2"></i>Live Node Status</h5><button class="btn btn-sm btn-outline-info" onclick="refreshNodeStatus()"><i class="fas fa-sync-alt"></i> Refresh</button></div><div id="nodeList"><div class="text-center text-muted loading-pulse">Loading node status...</div></div></div>
-<div class="row mt-4"><div class="col-md-6"><div class="glass-card"><h6>Quick Actions</h6><button class="btn btn-outline-success w-100" onclick="testAllNodes()"><i class="fas fa-vial"></i> Test All Nodes</button></div></div>
-<div class="col-md-6"><div class="glass-card"><h6>Attack Control</h6><button class="btn btn-outline-warning w-100" onclick="stopAttack()"><i class="fas fa-stop"></i> Stop All Attacks</button></div></div></div>
-</div>
+
 <script>
 let refreshInterval;
-document.addEventListener('DOMContentLoaded',function(){refreshNodeStatus();refreshAttackStatus();refreshInterval=setInterval(refreshNodeStatus,10000);setInterval(refreshAttackStatus,3000);});
-async function refreshNodeStatus(){try{const res=await fetch('/admin/nodes/status/all');const nodes=await res.json();renderNodeList(nodes);updateStats(nodes);}catch(e){console.error(e);}}
-function renderNodeList(nodes){const container=document.getElementById('nodeList');if(nodes.length===0){container.innerHTML='<div class="text-center text-muted">No nodes added</div>';return;}let html='';nodes.forEach(node=>{const statusClass=node.status==='active'?'status-active':(node.status==='no_binary'?'status-nobinary':'status-dead');const binaryIcon=node.binary?'✅':'❌';const enabledIcon=node.enabled?'🟢':'⚫';html+=`<div class="node-row"><div class="me-3">${enabledIcon}</div><div style="flex:2"><strong>${node.name}</strong> <span class="text-muted">(${node.type})</span></div><div style="flex:1"><span class="status-badge ${statusClass}">${node.status}</span></div><div style="flex:1">Binary: ${binaryIcon}</div><div style="flex:1">Attacks: ${node.attack_count||0}</div><div><button class="btn btn-sm btn-outline-info" onclick="testNode('${node.id}')"><i class="fas fa-sync-alt"></i></button></div></div>`;});container.innerHTML=html;}
-function updateStats(nodes){const active=nodes.filter(n=>n.status==='active').length;document.getElementById('activeNodes').innerText=active;}
-async function testNode(nodeId){const btn=event.target.closest('button');const orig=btn.innerHTML;btn.innerHTML='<span class="spinner-border spinner-border-sm"></span>';btn.disabled=true;try{const res=await fetch(`/admin/nodes/${nodeId}/test`,{method:'POST'});const data=await res.json();alert(`Test Result: ${data.status} - ${data.message}`);refreshNodeStatus();}catch(e){alert('Test failed');}finally{btn.innerHTML=orig;btn.disabled=false;}}
-async function testAllNodes(){if(!confirm('Test all nodes?'))return;const nodes=await fetch('/admin/nodes/status/all').then(r=>r.json());for(const node of nodes){await fetch(`/admin/nodes/${node.id}/test`,{method:'POST'});}refreshNodeStatus();alert('All nodes tested');}
-async function refreshAttackStatus(){try{const res=await fetch('/admin/attack/status');const data=await res.json();const badge=document.getElementById('attackStatusBadge');const details=document.getElementById('attackDetails');if(data.is_attacking){badge.className='badge bg-danger';badge.innerText='ATTACK RUNNING';if(data.current_attack){details.innerHTML=`🎯 ${data.current_attack.target}:${data.current_attack.port} | ⏱️ ${data.current_attack.duration}s | Queue: ${data.queue_length}`;}}else{badge.className='badge bg-success';badge.innerText='IDLE';details.innerHTML=`Queue: ${data.queue_length} pending`;}}catch(e){}}
-async function stopAttack(){if(!confirm('Stop all attacks?'))return;try{await fetch('/admin/attack/stop',{method:'POST'});alert('Stop command sent');refreshAttackStatus();}catch(e){alert('Failed');}}
+let attackInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+  refreshNodeStatus();
+  refreshAttackStatus();
+  refreshInterval = setInterval(refreshNodeStatus, 10000);
+  attackInterval = setInterval(refreshAttackStatus, 3000);
+});
+
+async function refreshNodeStatus() {
+  try {
+    const res = await fetch('/admin/nodes/status/all');
+    const nodes = await res.json();
+    renderNodeList(nodes);
+    updateStats(nodes);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderNodeList(nodes) {
+  const container = document.getElementById('nodeList');
+  if (!nodes || nodes.length === 0) {
+    container.innerHTML = '<div class="loading-placeholder">No nodes added</div>';
+    return;
+  }
+
+  let html = '';
+  nodes.forEach(node => {
+    const statusClass = node.status === 'active' ? 'ns-active' : (node.status === 'no_binary' ? 'ns-nobinary' : 'ns-dead');
+    const binaryIcon = node.binary ? '✅' : '❌';
+    const enabledIcon = node.enabled ? '🟢' : '⚫';
+
+    html += `
+      <div class="node-row">
+        <span>${enabledIcon}</span>
+        <span class="node-name">${node.name} <span class="node-type">(${node.type})</span></span>
+        <span class="node-status-badge ${statusClass}"><span class="ns-dot"></span>${node.status}</span>
+        <span class="node-binary">Binary: ${binaryIcon}</span>
+        <span class="node-attacks">Attacks: ${node.attack_count || 0}</span>
+        <span class="node-actions">
+          <button class="btn btn-sm btn-outline" onclick="testNode('${node.id}')"><i class="fas fa-sync-alt"></i></button>
+        </span>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function updateStats(nodes) {
+  const activeCount = nodes.filter(n => n.status === 'active').length;
+  document.getElementById('activeNodes').innerText = activeCount;
+}
+
+async function testNode(nodeId) {
+  const btn = event.target.closest('button');
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/admin/nodes/${nodeId}/test`, { method: 'POST' });
+    const data = await res.json();
+    alert(`Test Result: ${data.status} — ${data.message}`);
+    refreshNodeStatus();
+  } catch (e) {
+    alert('Test failed');
+  } finally {
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+  }
+}
+
+async function testAllNodes() {
+  if (!confirm('Test all nodes?')) return;
+  try {
+    const nodes = await fetch('/admin/nodes/status/all').then(r => r.json());
+    for (const node of nodes) {
+      await fetch(`/admin/nodes/${node.id}/test`, { method: 'POST' });
+    }
+    refreshNodeStatus();
+    alert('All nodes tested');
+  } catch (e) {
+    alert('Test all nodes failed');
+  }
+}
+
+async function refreshAttackStatus() {
+  try {
+    const res = await fetch('/admin/attack/status');
+    const data = await res.json();
+    const badge = document.getElementById('attackStatusBadge');
+    const details = document.getElementById('attackDetails');
+
+    if (data.is_attacking) {
+      badge.className = 'status-pill attacking';
+      badge.innerHTML = '<span class="status-dot"></span> ATTACK RUNNING';
+      if (data.current_attack) {
+        details.innerHTML = `🎯 ${data.current_attack.target}:${data.current_attack.port} &nbsp;|&nbsp; ⏱️ ${data.current_attack.duration}s &nbsp;|&nbsp; Queue: ${data.queue_length}`;
+      }
+    } else {
+      badge.className = 'status-pill idle';
+      badge.innerHTML = '<span class="status-dot"></span> IDLE';
+      details.innerHTML = `Queue: ${data.queue_length} pending`;
+    }
+  } catch (e) {
+    // silently ignore
+  }
+}
+
+async function stopAttack() {
+  if (!confirm('Stop all attacks?')) return;
+  try {
+    await fetch('/admin/attack/stop', { method: 'POST' });
+    alert('Stop command sent');
+    refreshAttackStatus();
+  } catch (e) {
+    alert('Failed to stop attacks');
+  }
+}
 </script>
-</body></html>
+
+</body>
+</html>
 '''
 
 ADMIN_NODES_HTML = '''
@@ -6061,74 +6456,448 @@ document.addEventListener('keydown', e => {
 
 ADMIN_API_KEYS_HTML = '''
 <!DOCTYPE html>
-<html><head><title>API Keys • </title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>API Keys • Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    body { background: #0a0a1a; color: #fff; padding: 20px; }
-    .glass-card { background: rgba(15,25,45,0.45); border-radius: 24px; padding: 20px; margin-bottom: 20px; }
-    label { color: #ccd6f0; }
-    .form-control, .form-select { background: rgba(0,0,0,0.5)!important; border: 1px solid #2a3a5a!important; color: #fff!important; }
-    .btn-neon { background: linear-gradient(90deg,#00b377,#00cc88); border: none; border-radius: 40px; padding: 8px 20px; font-weight: bold; color: #000; }
-    .text-muted { color: #a0b3cc !important; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --surface2: rgba(10, 4, 18, 0.6);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --purple: #aa66ff;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section title */
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s ease 0.15s both;
+}
+.stat-card {
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.stat-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.stat-icon.green { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.2); color: var(--green); }
+.stat-icon.blue  { background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.2); color: var(--blue); }
+.stat-icon.red   { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.2); color: var(--accent2); }
+.stat-val { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 24px;
+}
+.panel-header {
+  padding: 14px 20px; background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 24px; }
+
+/* Form grid (generate key) */
+.gen-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 16px; align-items: end;
+}
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.form-input, .form-select {
+  width: 100%; background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 10px;
+  padding: 11px 16px; color: var(--text);
+  font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 500;
+  outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.form-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6680' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+}
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+.form-select option { background: #1a0a14; color: var(--text); }
+
+/* Custom limits row */
+.custom-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-top: 16px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 22px; border: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease; white-space: nowrap; text-decoration: none;
+}
+.btn-generate {
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  color: #fff; box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+  padding: 11px 22px;
+}
+.btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+
+.btn-sm { padding: 6px 14px; font-size: 10px; border-radius: 8px; }
+.btn-warning { background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
+.btn-warning:hover { background: rgba(255,200,0,0.22); transform: translateY(-1px); }
+.btn-danger  { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.3); color: var(--accent2); }
+.btn-danger:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(255,40,100,0.06); border-bottom: 1px solid var(--border); }
+th {
+  padding: 12px 16px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); text-align: left; white-space: nowrap;
+}
+td {
+  padding: 14px 16px; font-size: 14px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
+}
+tbody tr { transition: background 0.2s; }
+tbody tr:hover { background: rgba(255,40,100,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+
+.key-code {
+  font-family: 'Orbitron', monospace; font-size: 11px;
+  color: var(--accent2); letter-spacing: 1px;
+  background: rgba(255,40,100,0.07);
+  border: 1px solid rgba(255,40,100,0.15);
+  border-radius: 6px; padding: 4px 10px;
+  display: inline-block; max-width: 190px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  vertical-align: middle;
+}
+.copy-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 13px; padding-left: 6px; transition: color 0.2s; }
+.copy-btn:hover { color: var(--accent2); }
+
+.status-badge { display: inline-flex; align-items: center; gap: 5px; }
+.status-active { color: var(--green); }
+.status-inactive { color: var(--accent); }
+
+.action-group { display: flex; align-items: center; gap: 6px; }
+.action-group form { display: inline; }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-icon  { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width: 768px) {
+  .gen-grid { grid-template-columns: 1fr 1fr; }
+  .custom-row { grid-template-columns: 1fr 1fr; }
+  .stats-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .gen-grid { grid-template-columns: 1fr; }
+  .custom-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
-<body><div class="container">
-<div class="glass-card"><h2><i class="fas fa-key me-2"></i>API Key Management</h2>
-<a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
+<body>
 
-<div class="card bg-dark mb-4"><div class="card-header">➕ Create New API Key</div><div class="card-body">
-<form method="POST" action="/admin/api_keys/create">
-  <div class="row">
-    <div class="col-md-3"><label>User ID</label><input type="text" name="user_id" class="form-control" placeholder="User ID" required></div>
-    <div class="col-md-3"><label>Key Name</label><input type="text" name="name" class="form-control" placeholder="My Bot" value="API Key"></div>
-    <div class="col-md-2"><label>Plan</label>
-      <select name="plan_name" class="form-select" id="planSelect" onchange="toggleCustom(this.value)">
-        <option value="">-- Select Plan --</option>
-        {% for p in plans %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}
-        <option value="custom">Custom</option>
-      </select>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <h1 class="page-title">API Key Management</h1>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | selectattr('active') | selectattr('expires_at', 'none') | list | length + keys | selectattr('active') | selectattr('expires_at', 'ne', None) | selectattr('expires_at', 'ge', now) | list | length }}</div>
+        <div class="stat-label">Active Keys</div>
+      </div>
     </div>
-    <div class="col-md-2"><label>Expires (days)</label><input type="number" name="expires_days" class="form-control" placeholder="Never"></div>
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-bolt"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | sum(attribute='total_attacks') }}</div>
+        <div class="stat-label">Total Attacks</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-key"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | length }}</div>
+        <div class="stat-label">Total Keys</div>
+      </div>
+    </div>
   </div>
-  <div class="row mt-2" id="customLimits" style="display:none;">
-    <div class="col-md-3"><label>Max Concurrent</label><input type="number" name="custom_concurrent" class="form-control" placeholder="e.g., 5"></div>
-    <div class="col-md-3"><label>Max Duration (s)</label><input type="number" name="custom_duration" class="form-control" placeholder="e.g., 300"></div>
-    <div class="col-md-3"><label>Max Threads</label><input type="number" name="custom_threads" class="form-control" placeholder="e.g., 5000"></div>
-  </div>
-  <button type="submit" class="btn-neon mt-3">Generate API Key</button>
-</form></div></div>
 
-<h4>Existing API Keys</h4>
-<div class="table-responsive"><table class="table table-dark">
-<thead><tr><th>Name</th><th>User</th><th>Key</th><th>Plan/Limits</th><th>Active</th><th>Attacks</th><th>Last Used</th><th>Expires</th><th>Actions</th></tr></thead>
-<tbody>
-{% for k in keys %}
-<tr>
-  <td>{{ k.name }}</td>
-  <td>{{ user_map[k.user_id] }}</td>
-  <td><code>{{ k.key[:12] }}...</code> <button class="btn btn-sm btn-outline-info" onclick="copyKey('{{ k.key }}')"><i class="fas fa-copy"></i></button></td>
-  <td>{% if k.plan_name %}{{ k.plan_name }}{% elif k.max_concurrent %}Custom{% else %}User Plan{% endif %}</td>
-  <td>{% if k.active %}✅{% else %}❌{% endif %}</td>
-  <td>{{ k.total_attacks }}</td>
-  <td>{{ k.last_used.strftime('%Y-%m-%d') if k.last_used else 'Never' }}</td>
-  <td>{{ k.expires_at.strftime('%Y-%m-%d') if k.expires_at else 'Never' }}</td>
-  <td>
-    <form method="POST" action="/admin/api_keys/{{ k._id if USE_MONGO else k.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form>
-    <form method="POST" action="/admin/api_keys/{{ k._id if USE_MONGO else k.id }}/delete" style="display:inline" onsubmit="return confirm('Delete?')"><button class="btn btn-sm btn-danger">Delete</button></form>
-  </td>
-</tr>
-{% endfor %}
-</tbody></table></div>
-</div></div>
+  <!-- Generate New API Key -->
+  <div class="section-title"><i class="fas fa-plus-circle"></i> Create New API Key</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.1s both;">
+    <div class="panel-header"><i class="fas fa-key"></i> New API Credentials</div>
+    <div class="panel-body">
+      <form method="POST" action="/admin/api_keys/create">
+        <div class="gen-grid">
+          <div class="field">
+            <label>User ID</label>
+            <input type="text" name="user_id" class="form-input" placeholder="User ID" required>
+          </div>
+          <div class="field">
+            <label>Key Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. My Bot" value="API Key">
+          </div>
+          <div class="field">
+            <label>Plan</label>
+            <select name="plan_name" class="form-select" id="planSelect" onchange="toggleCustom(this.value)">
+              <option value="">-- Select Plan --</option>
+              {% for p in plans %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Expires (days)</label>
+            <input type="number" name="expires_days" class="form-input" placeholder="Never">
+          </div>
+        </div>
+
+        <div id="customLimits" style="display:none;">
+          <div class="custom-row">
+            <div class="field">
+              <label>Max Concurrent</label>
+              <input type="number" name="custom_concurrent" class="form-input" placeholder="e.g. 5">
+            </div>
+            <div class="field">
+              <label>Max Duration (s)</label>
+              <input type="number" name="custom_duration" class="form-input" placeholder="e.g. 300">
+            </div>
+            <div class="field">
+              <label>Max Threads</label>
+              <input type="number" name="custom_threads" class="form-input" placeholder="e.g. 5000">
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button type="submit" class="btn btn-generate"><i class="fas fa-magic"></i> Generate API Key</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Existing API Keys -->
+  <div class="section-title"><i class="fas fa-list"></i> Existing API Keys</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.2s both;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>User</th>
+            <th>Key</th>
+            <th>Plan / Limits</th>
+            <th>Active</th>
+            <th>Attacks</th>
+            <th>Last Used</th>
+            <th>Expires</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k in keys %}
+          <tr>
+            <td style="font-weight:600;">{{ k.name }}</td>
+            <td style="color:var(--blue); font-weight:500;">{{ user_map.get(k.user_id, k.user_id) }}</td>
+            <td>
+              <span class="key-code" title="{{ k.key }}">{{ k.key[:12] }}...</span>
+              <button class="copy-btn" onclick="copyKey('{{ k.key }}')" title="Copy full key"><i class="fas fa-copy"></i></button>
+            </td>
+            <td>
+              {% if k.plan_name %}
+                <span style="background:rgba(255,200,0,0.1); border:1px solid rgba(255,200,0,0.2); border-radius:6px; padding:2px 8px; font-size:12px; font-weight:700; color:var(--yellow);">{{ k.plan_name }}</span>
+              {% elif k.max_concurrent %}
+                <span style="font-size:12px; color:var(--muted);">Custom ({{ k.max_concurrent }}/{{ k.max_duration }}s/{{ k.max_threads }}t)</span>
+              {% else %}
+                <span style="color:var(--muted);">User Plan</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if k.active %}
+                <span class="status-badge status-active"><i class="fas fa-circle" style="font-size:8px;"></i> Active</span>
+              {% else %}
+                <span class="status-badge status-inactive"><i class="fas fa-circle" style="font-size:8px;"></i> Inactive</span>
+              {% endif %}
+            </td>
+            <td style="font-family:'Orbitron',monospace; font-size:13px;">{{ k.total_attacks }}</td>
+            <td style="font-size:13px; color:var(--muted);">{{ k.last_used.strftime('%Y-%m-%d') if k.last_used else 'Never' }}</td>
+            <td style="font-size:13px; color:var(--muted);">
+              {{ k.expires_at.strftime('%Y-%m-%d') if k.expires_at else 'Never' }}
+            </td>
+            <td>
+              <div class="action-group">
+                <form method="POST" action="/admin/api_keys/{{ k._id if USE_MONGO else k.id }}/toggle">
+                  <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-power-off"></i> Toggle</button>
+                </form>
+                <form method="POST" action="/admin/api_keys/{{ k._id if USE_MONGO else k.id }}/delete" onsubmit="return confirm('Delete API key {{ k.name }}?')">
+                  <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon">🗝️</div>
+                No API keys generated yet. Use the form above to create one.
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 <script>
-function toggleCustom(val) { document.getElementById('customLimits').style.display = val === 'custom' ? 'flex' : 'none'; }
-function copyKey(key) { navigator.clipboard.writeText(key); alert('Key copied!'); }
+function toggleCustom(val) {
+  const customDiv = document.getElementById('customLimits');
+  if (val === 'custom') {
+    customDiv.style.display = 'block';
+  } else {
+    customDiv.style.display = 'none';
+  }
+}
+function copyKey(key) {
+  navigator.clipboard.writeText(key).then(() => {
+    alert('Key copied!');
+  });
+}
+// Initialize on load if custom preselected (unlikely, but for safety)
+if (document.getElementById('planSelect').value === 'custom') {
+  document.getElementById('customLimits').style.display = 'block';
+}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body></html>
-'''
 
+</body>
+</html>
+'''
 
 
 # ==================== RUN ====================
