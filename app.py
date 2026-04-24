@@ -2650,7 +2650,7 @@ DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Dashboard</title>
+<title>Dashboard • STRESSER</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -2669,6 +2669,7 @@ DASHBOARD_HTML = '''
   --muted: rgba(180, 220, 210, 0.45);
   --sidebar-w: 270px;
   --radius: 20px;
+  --panel-radius: 28px;
 }
 
 body {
@@ -2789,13 +2790,30 @@ body {
 }
 @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
-/* Page header */
+/* Page header with animated icon */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
 }
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,170,255,0.1));
+  border: 1px solid rgba(0,255,200,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(0,255,200,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(0,255,200,0.45); }
+}
 .page-title {
-  font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 900;
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
@@ -2816,15 +2834,42 @@ body {
 }
 .section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
 
-/* Cards */
+/* Cards with corner accents */
 .card {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 28px; margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
+  padding: 28px;
+  margin-bottom: 22px;
+  position: relative;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
-.card:hover { border-color: rgba(0,255,200,0.3); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+.card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+.card:hover { border-color: rgba(0,255,200,0.35); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
 
 /* Stats row */
 .stats-row {
@@ -2902,6 +2947,18 @@ body {
 }
 .btn-redeem:hover { background: rgba(0,255,200,0.2); transform: translateY(-1px); }
 .redeem-note { font-size: 12px; color: var(--muted); }
+
+/* Info box inside redeem */
+.info-box {
+  background: rgba(0,170,255,0.05);
+  border: 1px solid rgba(0,170,255,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 16px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--muted);
+}
+.info-box i { color: var(--accent2); flex-shrink: 0; margin-top: 2px; }
 
 /* Table */
 .table-wrap { overflow-x: auto; }
@@ -2997,7 +3054,10 @@ tbody tr:last-child td { border-bottom: none; }
 <div class="main">
 
   <div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-tachometer-alt"></i></div>
+      <h1 class="page-title">Dashboard</h1>
+    </div>
     <div class="online-pill"><div class="online-dot"></div> Online</div>
   </div>
 
@@ -3036,7 +3096,10 @@ tbody tr:last-child td { border-bottom: none; }
         <button type="submit" class="btn-redeem"><i class="fas fa-unlock" style="margin-right:6px;"></i>Redeem</button>
       </div>
     </form>
-    <div class="redeem-note">Key will be applied to your current account.</div>
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <div>Keys are <strong style="color:var(--accent);">single‑use</strong> and will be permanently linked to your account. Enter the key exactly as shown.</div>
+    </div>
   </div>
 
   <!-- Recent Activity -->
@@ -3486,7 +3549,7 @@ PRODUCTS_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Plans • </title>
+<title>Plans • STRESSER</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -3504,6 +3567,7 @@ PRODUCTS_HTML = '''
   --text: #cce8e0;
   --muted: rgba(180, 220, 210, 0.45);
   --radius: 24px;
+  --panel-radius: 28px;
 }
 
 body {
@@ -3598,19 +3662,29 @@ body {
 }
 .back-btn:hover { color: var(--accent); border-color: var(--border); background: rgba(0,255,200,0.05); }
 
-.page-badge {
-  display: inline-flex;
+.page-title-wrap {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0,255,200,0.08);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,170,255,0.1));
+  border: 1px solid rgba(0,255,200,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
   color: var(--accent);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(0,255,200,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(0,255,200,0.45); }
+}
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 
 /* ── Hero text ── */
@@ -3651,12 +3725,12 @@ body {
   margin-bottom: 32px;
 }
 
-/* ── Plan card ── */
+/* ── Plan card with corner accents ── */
 .plan-card {
   background: var(--surface);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--panel-radius);
   padding: 32px 24px;
   text-align: center;
   position: relative;
@@ -3664,6 +3738,30 @@ body {
   transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
   animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
   cursor: default;
+}
+.plan-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.plan-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .plan-card:nth-child(1) { animation-delay: 0.1s; }
 .plan-card:nth-child(2) { animation-delay: 0.2s; }
@@ -3675,21 +3773,11 @@ body {
   to   { opacity:1; transform:translateY(0) scale(1); }
 }
 
-.plan-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
 .plan-card:hover {
   border-color: rgba(0,255,200,0.45);
   transform: translateY(-6px);
   box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,200,0.08);
 }
-.plan-card:hover::before { opacity: 1; }
 
 /* Popular badge */
 .plan-card.popular {
@@ -3707,6 +3795,7 @@ body {
   text-transform: uppercase;
   padding: 4px 10px;
   border-radius: 20px;
+  z-index: 3;
 }
 
 /* Plan name */
@@ -3822,7 +3911,7 @@ body {
   background: var(--surface);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(0,170,255,0.2);
-  border-radius: var(--radius);
+  border-radius: var(--panel-radius);
   padding: 36px 40px;
   display: flex;
   align-items: center;
@@ -3836,8 +3925,25 @@ body {
 .custom-banner::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(0,170,255,0.04), transparent 60%);
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent2);
+  border-left: 2px solid var(--accent2);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.8;
+  z-index: 2;
+  pointer-events: none;
+}
+.custom-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.8;
+  z-index: 2;
   pointer-events: none;
 }
 .custom-left { flex: 1; min-width: 200px; }
@@ -3892,10 +3998,14 @@ body {
 
 <div class="container">
 
-  <!-- Top bar -->
+  <!-- Top bar with animated icon -->
   <div class="topbar">
     <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <div class="page-badge"><i class="fas fa-bolt"></i> &nbsp; Upgrade Plan</div>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-layer-group"></i></div>
+      <h1 class="page-title">Plans</h1>
+    </div>
+    <div></div> <!-- empty for flex balance, or you can keep the original badge if you want; I'll leave it empty so the title centers nicely -->
   </div>
 
   <!-- Hero -->
