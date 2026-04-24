@@ -1238,9 +1238,7 @@ def admin_test_attack():
         flood = 1 if request.form.get('flood') else 0
         pps_limit = int(request.form.get('pps_limit', 0))
 
-        if duration > 30:
-            flash('Test duration limited to 30 seconds', 'warning')
-            duration = 30
+        # No duration cap – admins can set any value
 
         if USE_MONGO:
             github_nodes = list(attack_nodes_col.find({"enabled": True, "node_type": "github"}))
@@ -6516,8 +6514,8 @@ tbody tr:hover { background: rgba(255,40,100,0.04); }
             <input type="number" name="port" class="form-input" placeholder="443" required>
           </div>
           <div class="field">
-            <label>Duration (max 30s)</label>
-            <input type="number" name="duration" class="form-input" value="10" min="1" max="30">
+            <label>Duration (seconds)</label>
+            <input type="number" name="duration" class="form-input" value="10" min="1">
           </div>
           <div class="field">
             <label>Method</label>
@@ -6678,25 +6676,7 @@ async function testSingleNode(nodeId, nodeName) {
     formData.append('duration', '5');
     formData.append('method', 'udp');
     formData.append('mode', 'default');
-    formData.append('threads', '500');
-    formData.append('single_node', nodeId);
 
-    const res = await fetch('/admin/test-attack/single', { method: 'POST', body: formData });
-    const data = await res.json();
-    alert(`Test on ${nodeName}: ${data.status} — ${data.message}`);
-  } catch (e) {
-    alert('Test failed');
-  } finally {
-    btn.innerHTML = originalHTML;
-    btn.disabled = false;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', loadNodes);
-</script>
-
-</body>
-</html>
 '''
 
 ADMIN_MANAGE_HTML = '''
