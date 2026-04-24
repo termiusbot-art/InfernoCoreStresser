@@ -5001,9 +5001,11 @@ ADMIN_NODES_HTML = '''
   --green: #00ffaa;
   --blue: #00aaff;
   --yellow: #ffcc00;
+  --orange: #ffaa00;
   --text: #f0d0d8;
   --muted: rgba(220,170,185,0.45);
-  --radius: 20px;
+  --radius: 20px;        /* for small elements */
+  --panel-radius: 28px;  /* for panels with corner accents */
 }
 
 body {
@@ -5057,6 +5059,23 @@ body {
 }
 .back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
 
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
 .page-title {
   font-family: 'Orbitron', monospace;
   font-size: 22px; font-weight: 900;
@@ -5091,14 +5110,40 @@ body {
 }
 @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
-/* Cards */
+/* Panels with corner accents */
 .panel {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--panel-radius);
   overflow: hidden;
+  position: relative;
 }
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .panel-header {
   padding: 14px 20px;
   background: rgba(255,40,100,0.07);
@@ -5108,7 +5153,7 @@ body {
   text-transform: uppercase; color: var(--accent2);
   display: flex; align-items: center; gap: 8px;
 }
-.panel-body { padding: 24px; }
+.panel-body { padding: 24px; position: relative; z-index: 1; }
 
 /* Form elements */
 .field { margin-bottom: 14px; }
@@ -5156,12 +5201,22 @@ input[type="file"].form-input { padding: 9px 14px; cursor: pointer; }
   font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
   cursor: pointer; transition: all 0.22s ease;
   text-decoration: none; white-space: nowrap;
+  position: relative; overflow: hidden;
 }
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), #cc2255);
   color: #fff;
   box-shadow: 0 4px 16px rgba(255,40,100,0.25);
 }
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-primary:hover::before { transform: translateX(100%) skewX(-15deg); }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
 
 .btn-warning {
@@ -5191,7 +5246,23 @@ input[type="file"].form-input { padding: 9px 14px; cursor: pointer; }
   display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
 }
 .binary-row .field { flex: 1; min-width: 200px; margin-bottom: 0; }
-.binary-note { font-size: 12px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+
+/* Info box for binary note */
+.info-box {
+  background: rgba(255,170,0,0.05);
+  border: 1px solid rgba(255,170,0,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 16px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--muted);
+}
+.info-box i { color: var(--orange); flex-shrink: 0; margin-top: 2px; }
+.info-box code {
+  background: rgba(255,255,255,0.08);
+  padding: 2px 6px; border-radius: 4px; font-size: 11px;
+  color: var(--accent2);
+}
 
 /* Table */
 .table-panel { animation: fadeUp 0.6s ease 0.3s both; }
@@ -5280,10 +5351,13 @@ tbody tr:last-child td { border-bottom: none; }
 
 <div class="container">
 
-  <!-- Topbar -->
+  <!-- Topbar with animated icon -->
   <div class="topbar">
     <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <h1 class="page-title">Node Management</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-network-wired"></i></div>
+      <h1 class="page-title">Node Management</h1>
+    </div>
     <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
 
@@ -5376,9 +5450,9 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
           <button type="submit" class="btn btn-warning"><i class="fas fa-rocket"></i> Upload & Distribute</button>
         </div>
-        <div class="binary-note">
+        <div class="info-box">
           <i class="fas fa-info-circle"></i>
-          Upload the compiled <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-size:11px;">primex</code> binary. It will be pushed to all enabled nodes automatically.
+          <div>Upload the compiled <code>primex</code> binary. It will be pushed to all enabled nodes automatically.</div>
         </div>
       </form>
     </div>
@@ -5499,6 +5573,7 @@ ADMIN_KEYS_HTML = '''
   --text: #f0d0d8;
   --muted: rgba(220,170,185,0.45);
   --radius: 20px;
+  --panel-radius: 28px;
 }
 
 body {
@@ -5534,7 +5609,7 @@ body {
 
 .container { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; }
 
-/* Topbar */
+/* Topbar with animated icon */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
@@ -5551,6 +5626,23 @@ body {
 }
 .back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
 
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
 .page-title {
   font-family: 'Orbitron', monospace;
   font-size: 22px; font-weight: 900;
@@ -5577,14 +5669,39 @@ body {
 }
 .section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
 
-/* Panel */
+/* Panels with corner accents */
 .panel {
   background: var(--surface);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--panel-radius);
   overflow: hidden;
   margin-bottom: 24px;
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
 }
 .panel-header {
   padding: 14px 20px;
@@ -5595,7 +5712,7 @@ body {
   text-transform: uppercase; color: var(--accent2);
   display: flex; align-items: center; gap: 8px;
 }
-.panel-body { padding: 24px; }
+.panel-body { padding: 24px; position: relative; z-index: 1; }
 
 /* Generate form */
 .gen-form {
@@ -5634,6 +5751,7 @@ body {
 }
 .form-select option { background: #1a0a14; color: var(--text); }
 
+/* Shimmer button */
 .btn-generate {
   width: 100%; padding: 11px 20px;
   background: linear-gradient(135deg, var(--accent), #cc2255);
@@ -5644,11 +5762,34 @@ body {
   transition: all 0.22s ease; display: flex;
   align-items: center; justify-content: center; gap: 8px;
   box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+  position: relative; overflow: hidden;
 }
+.btn-generate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-generate:hover::before { transform: translateX(100%) skewX(-15deg); }
 .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
 .btn-generate:active { transform: translateY(0); }
 
-/* Stats row */
+/* Info box */
+.info-box {
+  background: rgba(255,200,0,0.04);
+  border: 1px solid rgba(255,200,0,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 20px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--muted);
+}
+.info-box i { color: var(--yellow); flex-shrink: 0; margin-top: 2px; }
+.info-box strong { color: var(--accent2); }
+
+/* Stats row with corner accents */
 .stats-row {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
   margin-bottom: 24px;
@@ -5658,8 +5799,29 @@ body {
   background: var(--surface);
   backdrop-filter: blur(18px);
   border: 1px solid var(--border);
-  border-radius: 14px; padding: 18px 20px;
+  border-radius: 18px; padding: 22px 20px;
   display: flex; align-items: center; gap: 14px;
+  position: relative;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 40px; height: 40px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 18px 0 0 0;
+  opacity: 0.7;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 40px; height: 40px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 18px 0;
+  opacity: 0.7;
 }
 .stat-icon {
   width: 40px; height: 40px; border-radius: 10px;
@@ -5669,8 +5831,8 @@ body {
 .stat-icon.green { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.2); color: var(--green); }
 .stat-icon.blue  { background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.2); color: var(--blue); }
 .stat-icon.red   { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.2); color: var(--accent2); }
-.stat-val { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
-.stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
+.stat-val { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; position: relative; z-index: 1; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; text-transform: uppercase; position: relative; z-index: 1; }
 
 /* Table */
 .table-panel { animation: fadeUp 0.6s ease 0.2s both; }
@@ -5770,14 +5932,17 @@ tbody tr:last-child td { border-bottom: none; }
 
 <div class="container">
 
-  <!-- Topbar -->
+  <!-- Topbar with animated icon -->
   <div class="topbar">
     <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <h1 class="page-title">Key Management</h1>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-key"></i></div>
+      <h1 class="page-title">Key Management</h1>
+    </div>
     <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
 
-  <!-- Stats -->
+  <!-- Stats row with corner accents -->
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon green"><i class="fas fa-key"></i></div>
@@ -5802,7 +5967,7 @@ tbody tr:last-child td { border-bottom: none; }
     </div>
   </div>
 
-  <!-- Generate -->
+  <!-- Generate panel with corner accents -->
   <div class="section-title"><i class="fas fa-plus-circle"></i> Generate Keys</div>
   <div class="panel" style="margin-bottom:24px; animation: fadeUp 0.6s ease 0.1s both;">
     <div class="panel-header"><i class="fas fa-magic"></i> New Key Batch</div>
@@ -5831,6 +5996,12 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </form>
+
+      <!-- Info box about key usage -->
+      <div class="info-box">
+        <i class="fas fa-info-circle"></i>
+        <div>Keys are <strong>single‑use</strong> and grant the selected plan for the specified number of days. Each key can be redeemed by any user.</div>
+      </div>
     </div>
   </div>
 
@@ -5918,131 +6089,579 @@ function copyKey(key, el) {
 
 ADMIN_TEST_ATTACK_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Test Attack • Admin</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Test Attack • Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>:root{--neon:#00ffcc;--danger:#ff3366;--warning:#ffaa00;--success:#00cc88;}
-body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000);font-family:'Inter',sans-serif;color:#fff;padding:20px;}
-.glass-card{background:rgba(15,25,45,0.5);backdrop-filter:blur(12px);border-radius:24px;border:1px solid rgba(0,255,200,0.15);padding:20px;margin-bottom:20px;transition:0.3s;}
-.glass-card:hover{transform:translateY(-3px);border-color:rgba(0,255,200,0.4);box-shadow:0 10px 30px rgba(0,0,0,0.3);}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88);border:none;border-radius:60px;padding:12px 24px;font-weight:bold;color:#000;}
-.btn-neon:hover{transform:scale(1.02);box-shadow:0 0 15px #00ff88;}
-input,select{background:rgba(0,0,0,0.5);border:1px solid #2a3a5a;border-radius:40px;padding:12px 20px;color:white;width:100%;}
-.status-badge{padding:4px 10px;border-radius:40px;font-size:12px;font-weight:600;}
-.status-success{background:rgba(0,204,136,0.2);color:#00cc88;border:1px solid #00cc88;}
-.status-failed{background:rgba(255,51,102,0.2);color:#ff3366;border:1px solid #ff3366;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-</style></head>
-<body><div class="container">
-<div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-flask me-2" style="color:var(--neon);"></i>Attack Testing Laboratory</h2><a href="/admin/dashboard" class="btn btn-outline-light"><i class="fas fa-arrow-left"></i> Back</a></div>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<!-- Quick Test Panel -->
-<div class="glass-card"><h4><i class="fas fa-bolt me-2"></i>Quick Test Configuration</h4>
-<p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i> Use a safe target (e.g., 127.0.0.1 or a test server).</p>
-<form method="POST">
-    <div class="row g-3">
-        <div class="col-md-3"><label>Target IP</label><input type="text" name="target" class="form-control bg-dark text-white" placeholder="192.168.1.1" required></div>
-        <div class="col-md-2"><label>Port</label><input type="number" name="port" class="form-control bg-dark text-white" placeholder="443" required></div>
-        <div class="col-md-2"><label>Duration (max 30s)</label><input type="number" name="duration" class="form-control bg-dark text-white" value="10" min="1" max="30"></div>
-        <div class="col-md-3">
-            <label>Method</label>
-            <select name="method" class="form-select bg-dark text-white">
-                {% for val, label in methods %}
-                <option value="{{ val }}">{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2"><label>Mode</label>
-            <select name="mode" class="form-select bg-dark text-white">
-                <option value="default">Default</option><option value="max-pps">Max PPS</option><option value="max-bandwidth">Max BW</option><option value="both">Both</option>
-            </select>
-        </div>
-        <div class="col-md-2"><label>Threads</label><input type="number" name="threads" class="form-control bg-dark text-white" value="500"></div>
-        <div class="col-md-2 d-flex align-items-end">
-            <div><label class="form-check-label me-2"><input type="checkbox" name="random_ports" value="1"> RandPorts</label></div>
-            <div><label class="form-check-label me-2"><input type="checkbox" name="spoof" value="1"> Spoof</label></div>
-            <div><label class="form-check-label"><input type="checkbox" name="flood" value="1"> Flood</label></div>
-        </div>
-        <div class="col-md-2"><label>PPS Limit</label><input type="number" name="pps_limit" class="form-control bg-dark text-white" value="0"></div>
-        <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn-neon w-100"><i class="fas fa-play"></i> Test All</button></div>
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --orange: #ffaa00;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+  --panel-radius: 28px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1300px; margin: 0 auto; }
+
+/* Topbar with animated icon */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title-wrap {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent2);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(255,40,100,0.45); }
+}
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section titles */
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Panels with corner accents */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--panel-radius) 0 0 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--panel-radius) 0;
+  opacity: 0.9;
+  z-index: 2;
+  pointer-events: none;
+}
+.panel-header {
+  padding: 14px 20px;
+  background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 24px; position: relative; z-index: 1; }
+
+/* Form grid */
+.test-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+.field { }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.form-input, .form-select {
+  width: 100%;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 11px 16px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+}
+.form-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6680' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+.form-select option { background: #1a0a14; color: var(--text); }
+
+/* Checkboxes row */
+.check-row {
+  display: flex; align-items: center; gap: 20px;
+  padding: 10px 0;
+}
+.check-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px;
+}
+.check-item input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent);
+  cursor: pointer;
+}
+.check-item label { color: var(--muted); cursor: pointer; }
+
+/* Shimmer button */
+.btn-neon {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  border: none; border-radius: 10px;
+  color: #fff; font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+  position: relative; overflow: hidden;
+  white-space: nowrap;
+}
+.btn-neon::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-neon:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-neon:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+
+/* Node cards grid */
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.node-card {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
+}
+.node-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 40px; height: 40px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 16px 0 0 0;
+  opacity: 0.6;
+}
+.node-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 40px; height: 40px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 16px 0;
+  opacity: 0.6;
+}
+.node-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.node-card-name { font-weight: 700; font-size: 15px; color: var(--text); }
+.node-card-type { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.node-card-status {
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}
+.status-active { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.status-nobinary { background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.25); color: var(--orange); }
+.status-dead { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+
+.node-card-stats { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.node-card-stats i { margin-right: 4px; opacity: 0.7; }
+
+.btn-sm {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px;
+  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.2s; width: 100%; justify-content: center;
+  background: rgba(0,170,255,0.12); border: 1px solid rgba(0,170,255,0.25);
+  color: var(--blue);
+}
+.btn-sm:hover { background: rgba(0,170,255,0.22); transform: translateY(-1px); }
+
+/* Results table */
+.results-table { margin-top: 8px; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(255,40,100,0.06); border-bottom: 1px solid var(--border); }
+th {
+  padding: 12px 16px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); text-align: left;
+}
+td {
+  padding: 12px 16px; font-size: 14px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+tbody tr:hover { background: rgba(255,40,100,0.04); }
+
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.status-success { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.status-failed  { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+
+.summary-box {
+  background: rgba(0,170,255,0.05);
+  border: 1px solid rgba(0,170,255,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--text);
+}
+.summary-box strong { color: var(--accent2); }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon  { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width: 768px) {
+  .test-grid { grid-template-columns: 1fr 1fr; }
+  .node-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .test-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar with animated flask icon -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-flask"></i></div>
+      <h1 class="page-title">Attack Testing Lab</h1>
     </div>
-</form>
-</div>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
 
-<!-- Individual Node Testing -->
-<div class="glass-card"><h4><i class="fas fa-server me-2"></i>Test Individual Nodes</h4>
-<div id="nodeListContainer"><div class="text-center text-muted">Loading nodes...</div></div>
-</div>
+  <!-- Quick Test Configuration -->
+  <div class="section-title"><i class="fas fa-bolt"></i> Quick Test Configuration</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.1s both;">
+    <div class="panel-header"><i class="fas fa-flask"></i> Multi‑Node Test</div>
+    <div class="panel-body">
+      <p style="color: var(--yellow); font-size: 13px; margin-bottom: 14px;">
+        <i class="fas fa-exclamation-triangle"></i> Use a safe target (e.g., 127.0.0.1 or a test server). Attacks execute on all enabled nodes.
+      </p>
+      <form method="POST">
+        <div class="test-grid">
+          <div class="field">
+            <label>Target IP</label>
+            <input type="text" name="target" class="form-input" placeholder="192.168.1.1" required>
+          </div>
+          <div class="field">
+            <label>Port</label>
+            <input type="number" name="port" class="form-input" placeholder="443" required>
+          </div>
+          <div class="field">
+            <label>Duration (max 30s)</label>
+            <input type="number" name="duration" class="form-input" value="10" min="1" max="30">
+          </div>
+          <div class="field">
+            <label>Method</label>
+            <select name="method" class="form-select">
+              {% for val, label in methods %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Mode</label>
+            <select name="mode" class="form-select">
+              <option value="default">Default</option>
+              <option value="max-pps">Max PPS</option>
+              <option value="max-bandwidth">Max BW</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Threads</label>
+            <input type="number" name="threads" class="form-input" value="500">
+          </div>
+          <div class="field">
+            <label>PPS Limit</label>
+            <input type="number" name="pps_limit" class="form-input" value="0" placeholder="0 = unlimited">
+          </div>
+          <div class="field" style="display: flex; align-items: flex-end;">
+            <button type="submit" class="btn-neon"><i class="fas fa-play"></i> Test All Nodes</button>
+          </div>
+        </div>
+        <div class="check-row">
+          <div class="check-item">
+            <input type="checkbox" name="random_ports" value="1" id="randPorts">
+            <label for="randPorts">Random Ports</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" name="spoof" value="1" id="spoof">
+            <label for="spoof">Spoof</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" name="flood" value="1" id="flood">
+            <label for="flood">Flood</label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
-<!-- Results Panel -->
-{% if results %}
-<div class="glass-card fade-in"><h4><i class="fas fa-clipboard-list me-2"></i>Test Results</h4>
-<p><strong>Target:</strong> {{ target }}:{{ port }} | <strong>Duration:</strong> {{ duration }}s | <strong>Method:</strong> {{ method }} | <strong>Mode:</strong> {{ mode }} | <strong>Threads:</strong> {{ threads }}</p>
-<div class="table-responsive"><table class="table table-dark table-hover">
-    <thead><tr><th>Node</th><th>Type</th><th>Status</th><th>Details</th></tr></thead>
-    <tbody>{% for r in results %}<tr><td>{{ r.name }}</td><td>{{ r.type }}</td><td><span class="status-badge {% if 'Success' in r.status %}status-success{% else %}status-failed{% endif %}">{{ r.status }}</span></td><td><small>{{ r.details or '' }}</small></td></tr>{% endfor %}</tbody>
-</table></div>
-<div class="alert alert-info mt-3"><strong>Summary:</strong> GitHub: {{ github_success }}/{{ github_total }} | VPS: {{ vps_success }}/{{ vps_total }}</div>
-</div>
-{% endif %}
+  <!-- Individual Node Testing -->
+  <div class="section-title"><i class="fas fa-server"></i> Test Individual Nodes</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.2s both;">
+    <div class="panel-header"><i class="fas fa-network-wired"></i> Node List</div>
+    <div class="panel-body">
+      <div id="nodeListContainer">
+        <div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Loading nodes...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Panel -->
+  {% if results %}
+  <div class="section-title"><i class="fas fa-clipboard-list"></i> Test Results</div>
+  <div class="panel" style="animation: fadeUp 0.6s ease 0.3s both;">
+    <div class="panel-header"><i class="fas fa-check-circle"></i> Last Run</div>
+    <div class="panel-body">
+      <p style="margin-bottom: 12px;">
+        <strong>Target:</strong> {{ target }}:{{ port }} &nbsp;|&nbsp;
+        <strong>Duration:</strong> {{ duration }}s &nbsp;|&nbsp;
+        <strong>Method:</strong> {{ method }} &nbsp;|&nbsp;
+        <strong>Mode:</strong> {{ mode }} &nbsp;|&nbsp;
+        <strong>Threads:</strong> {{ threads }}
+      </p>
+      <div class="results-table table-wrap" style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Node</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ r.name }}</td>
+              <td style="text-transform: uppercase; font-size: 13px; color: var(--muted);">{{ r.type }}</td>
+              <td>
+                <span class="status-badge {% if 'Success' in r.status %}status-success{% else %}status-failed{% endif %}">
+                  {{ r.status }}
+                </span>
+              </td>
+              <td style="font-size: 13px; color: var(--muted);">{{ r.details or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="summary-box">
+        <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>
+        <strong>Summary:</strong>
+        GitHub: {{ github_success }}/{{ github_total }} &nbsp;|&nbsp;
+        VPS: {{ vps_success }}/{{ vps_total }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
 async function loadNodes() {
-    try {
-        const res = await fetch('/admin/nodes/status/all');
-        const nodes = await res.json();
-        const container = document.getElementById('nodeListContainer');
-        if (nodes.length === 0) {
-            container.innerHTML = '<div class="text-muted">No nodes available.</div>';
-            return;
-        }
-        let html = '<div class="row g-3">';
-        nodes.forEach(node => {
-            const statusColor = node.status === 'active' ? 'status-success' : (node.status === 'no_binary' ? 'status-running' : 'status-failed');
-            html += `<div class="col-md-4"><div class="bg-dark p-3 rounded-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>${node.name}</strong><span class="status-badge ${statusColor}">${node.status}</span>
-                </div>
-                <p class="small mb-2"><i class="fas fa-${node.type === 'github' ? 'code-branch' : 'server'}"></i> ${node.type.toUpperCase()} | Attacks: ${node.attack_count}</p>
-                <button class="btn btn-sm btn-outline-info w-100" onclick="testSingleNode('${node.id}', '${node.name}')"><i class="fas fa-flask"></i> Test This Node</button>
-            </div></div>`;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    } catch(e) { console.error(e); }
+  try {
+    const res = await fetch('/admin/nodes/status/all');
+    const nodes = await res.json();
+    const container = document.getElementById('nodeListContainer');
+    if (!nodes || nodes.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🖥️</div>No nodes available.</div>';
+      return;
+    }
+    let html = '<div class="node-grid">';
+    nodes.forEach(node => {
+      const statusClass = node.status === 'active' ? 'status-active' : (node.status === 'no_binary' ? 'status-nobinary' : 'status-dead');
+      const iconType = node.type === 'github' ? 'fab fa-github' : 'fas fa-server';
+      html += `
+        <div class="node-card">
+          <div class="node-card-header">
+            <span class="node-card-name">${node.name}</span>
+            <span class="node-card-status ${statusClass}">${node.status}</span>
+          </div>
+          <div class="node-card-type"><i class="${iconType}"></i> ${node.type.toUpperCase()}</div>
+          <div class="node-card-stats">
+            <i class="fas fa-bolt"></i> Attacks: ${node.attack_count || 0}
+          </div>
+          <button class="btn-sm" onclick="testSingleNode('${node.id}', '${node.name}')">
+            <i class="fas fa-flask"></i> Test This Node
+          </button>
+        </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    document.getElementById('nodeListContainer').innerHTML = '<div class="empty-state">Failed to load nodes.</div>';
+  }
 }
 
 async function testSingleNode(nodeId, nodeName) {
-    if (!confirm(`Test attack on ${nodeName}? Use default test target (127.0.0.1:443, 5s, UDP).`)) return;
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testing...';
-    btn.disabled = true;
-    try {
-        const formData = new FormData();
-        formData.append('target', '127.0.0.1');
-        formData.append('port', '443');
-        formData.append('duration', '5');
-        formData.append('method', 'udp');
-        formData.append('mode', 'default');
-        formData.append('threads', '500');
-        formData.append('single_node', nodeId);
-        const res = await fetch('/admin/test-attack/single', { method: 'POST', body: formData });
-        const data = await res.json();
-        alert(`Test on ${nodeName}: ${data.status} - ${data.message}`);
-    } catch(e) {
-        alert('Test failed');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
+  if (!confirm(`Test attack on ${nodeName}? Default target 127.0.0.1:443, 5s, UDP.`)) return;
+  const btn = event.target;
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+  btn.disabled = true;
+  try {
+    const formData = new FormData();
+    formData.append('target', '127.0.0.1');
+    formData.append('port', '443');
+    formData.append('duration', '5');
+    formData.append('method', 'udp');
+    formData.append('mode', 'default');
+    formData.append('threads', '500');
+    formData.append('single_node', nodeId);
+
+    const res = await fetch('/admin/test-attack/single', { method: 'POST', body: formData });
+    const data = await res.json();
+    alert(`Test on ${nodeName}: ${data.status} — ${data.message}`);
+  } catch (e) {
+    alert('Test failed');
+  } finally {
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', loadNodes);
 </script>
-</body></html>
+
+</body>
+</html>
 '''
 
 ADMIN_MANAGE_HTML = '''
