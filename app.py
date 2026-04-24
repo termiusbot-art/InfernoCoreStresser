@@ -1680,21 +1680,6 @@ def admin_test_node_ajax(node_id):
         result = test_github_node_detailed(node)
     return jsonify(result)
 
-@app.route('/admin/nodes/<node_id>/test', methods=['POST'])
-@admin_required('nodes')
-def admin_test_node_ajax(node_id):
-    if USE_MONGO:
-        node = attack_nodes_col.find_one({"_id": ObjectId(node_id)})
-    else:
-        node = AttackNode.query.get(node_id)
-    if not node:
-        return jsonify({'error': 'Node not found'}), 404
-    if (node['node_type'] if USE_MONGO else node.node_type) == 'vps':
-        result = test_vps_node_detailed(node)
-    else:
-        result = test_github_node_detailed(node)
-    return jsonify(result)
-
 @app.route('/admin/attack/status')
 @admin_required('dashboard')
 def admin_attack_status():
