@@ -1750,45 +1750,900 @@ def admin_stop_attack():
 
 LOGIN_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Login • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#fff; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px; animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.6); backdrop-filter:blur(12px); border-radius:32px; border:1px solid rgba(0,255,200,0.2); padding:40px; width:100%; max-width:450px; box-shadow:0 20px 40px rgba(0,0,0,0.4);}
-input{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius:40px; padding:12px 20px; color:white; width:100%; margin-bottom:20px;}
-input:focus{outline:none; border-color:#00ffcc; box-shadow:0 0 12px #00ffcc;}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88); border:none; border-radius:40px; padding:12px; font-weight:bold; width:100%; transition:0.2s;}
-.btn-neon:hover{transform:scale(1.02);box-shadow:0 0 15px #00ff88;}
-a{color:#00ffcc; text-decoration:none;}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-</style></head>
-<body><div class="glass-card"><h2 class="text-center mb-4" style="color:#00ffcc;">🔐 Login</h2>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endwith %}
-<form method="POST">
-    <input type="text" name="token" placeholder="Access Token" required>
-    <div class="mb-3"><label class="form-label">Captcha: {{ captcha_question }}</label><input type="text" name="captcha" class="form-control" placeholder="Your answer" required></div>
-    <button type="submit" class="btn-neon">🚀 Login</button>
-</form>
-<p class="text-center mt-3">No token? <a href="/register">Generate one</a></p>
-<hr><p class="text-center mt-3"><small>Admin? <a href="/admin/login">Admin Login</a></small></p></div></body></html>
+<html lang="en">
+<head>
+<title>Login • Access Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #020408;
+    --surface: rgba(8, 18, 32, 0.75);
+    --border: rgba(0, 220, 170, 0.18);
+    --accent: #00dcaa;
+    --accent2: #00aaff;
+    --text: #e8f4f0;
+    --muted: rgba(200, 230, 220, 0.45);
+    --error: #ff4d6d;
+    --success: #00dcaa;
+    --radius: 28px;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated background */
+  .bg-orbs {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    animation: drift linear infinite;
+  }
+  .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #00dcaa, transparent); top: -150px; left: -100px; animation-duration: 18s; }
+  .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #00aaff, transparent); bottom: -120px; right: -80px; animation-duration: 22s; animation-direction: reverse; }
+  .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #7040ff, transparent); top: 40%; left: 50%; animation-duration: 28s; opacity: 0.15; }
+
+  @keyframes drift {
+    0%   { transform: translate(0, 0) scale(1); }
+    33%  { transform: translate(40px, -30px) scale(1.08); }
+    66%  { transform: translate(-30px, 20px) scale(0.95); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+
+  /* Grid lines */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,220,170,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,220,170,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* Card */
+  .card {
+    position: relative;
+    z-index: 10;
+    background: var(--surface);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow:
+      0 0 0 1px rgba(0,220,170,0.06),
+      0 30px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(0,220,170,0.06) inset;
+    animation: slideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(32px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Corner decorations */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 80px; height: 80px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius) 0 0 0;
+    opacity: 0.7;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 80px; height: 80px;
+    border-bottom: 2px solid var(--accent2);
+    border-right: 2px solid var(--accent2);
+    border-radius: 0 0 var(--radius) 0;
+    opacity: 0.7;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .logo-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, rgba(0,220,170,0.15), rgba(0,170,255,0.15));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    font-size: 24px;
+    box-shadow: 0 0 20px rgba(0,220,170,0.2);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,220,170,0.2); }
+    50%       { box-shadow: 0 0 35px rgba(0,220,170,0.4); }
+  }
+  .title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Alerts */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    margin-bottom: 20px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .alert-danger  { background: rgba(255,77,109,0.1);  border-color: rgba(255,77,109,0.3);  color: #ff8fa3; }
+  .alert-success { background: rgba(0,220,170,0.1);   border-color: rgba(0,220,170,0.3);   color: var(--accent); }
+  .alert-warning { background: rgba(255,190,50,0.1);  border-color: rgba(255,190,50,0.3);  color: #ffd166; }
+
+  /* Form */
+  .field {
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    opacity: 0.6;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  input[type="text"],
+  input[type="password"],
+  input[type="number"] {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 18px 14px 44px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.25s ease;
+    -webkit-appearance: none;
+  }
+  input::placeholder { color: rgba(200,230,220,0.3); }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,220,170,0.12), 0 0 20px rgba(0,220,170,0.08);
+    background: rgba(0,220,170,0.04);
+  }
+  input:focus + .focus-line { transform: scaleX(1); }
+
+  /* Captcha box */
+  .captcha-box {
+    background: rgba(0,220,170,0.04);
+    border: 1px dashed rgba(0,220,170,0.2);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .captcha-question {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .captcha-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    background: rgba(0,220,170,0.1);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+
+  /* Button */
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #00dcaa, #00aaff);
+    border: none;
+    border-radius: 14px;
+    color: #020408;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-100%) skewX(-15deg);
+    transition: transform 0.4s ease;
+  }
+  .btn-primary:hover::before { transform: translateX(100%) skewX(-15deg); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,220,170,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 20px;
+  }
+  .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+  .divider-text { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Footer links */
+  .footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  .footer-links p { font-size: 13.5px; color: var(--muted); }
+  .footer-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .footer-links a:hover { color: #fff; }
+
+  .admin-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(200,230,220,0.35) !important;
+    font-weight: 400 !important;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 6px 14px;
+    transition: all 0.2s !important;
+  }
+  .admin-link:hover { color: var(--muted) !important; border-color: rgba(255,255,255,0.12) !important; background: rgba(255,255,255,0.03); }
+
+  /* Show/hide password */
+  .toggle-pass {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .toggle-pass:hover { color: var(--accent); }
+
+  /* Strength indicator */
+  .token-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div class="grid-bg"></div>
+
+<div class="card">
+
+  <div class="header">
+    <div class="logo-icon">🔐</div>
+    <h1 class="title">Access Portal</h1>
+    <p class="subtitle">Enter your token to continue</p>
+  </div>
+
+  <!-- Flash messages (Jinja2 template) -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">
+        {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" autocomplete="off">
+
+    <div class="field">
+      <label>Access Token</label>
+      <div class="input-wrap">
+        <span class="input-icon">🗝️</span>
+        <input type="password" name="token" id="tokenInput" placeholder="Paste your token here" required autocomplete="off">
+        <button type="button" class="toggle-pass" onclick="toggleToken()" id="toggleBtn" title="Show/hide token">👁️</button>
+      </div>
+      <p class="token-hint"><span class="dot"></span>Your token is case-sensitive</p>
+    </div>
+
+    <div class="field">
+      <label>Security Check</label>
+      <div class="captcha-box">
+        <span class="captcha-question">{{ captcha_question }}</span>
+        <span class="captcha-label">Captcha</span>
+      </div>
+      <div class="input-wrap">
+        <span class="input-icon">🔢</span>
+        <input type="text" name="captcha" placeholder="Your answer" required autocomplete="off" inputmode="numeric">
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary">
+      🚀 &nbsp; Sign In
+    </button>
+
+  </form>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-text">or</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="footer-links">
+    <p>No token? <a href="/register">Generate one →</a></p>
+    <p><a href="/admin/login" class="admin-link">⚙️ Admin Login</a></p>
+  </div>
+
+</div>
+
+<script>
+  function toggleToken() {
+    const input = document.getElementById('tokenInput');
+    const btn = document.getElementById('toggleBtn');
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁️';
+    }
+  }
+</script>
+
+</body>
+</html>
 '''
 
 REGISTER_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Register • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#fff; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px; animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.6); backdrop-filter:blur(12px); border-radius:32px; border:1px solid rgba(0,255,200,0.2); padding:40px; width:100%; max-width:450px; box-shadow:0 20px 40px rgba(0,0,0,0.4);}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88); border:none; border-radius:40px; padding:12px; font-weight:bold; width:100%;}
-</style></head>
-<body><div class="glass-card"><h2 class="text-center mb-4" style="color:#00ffcc;">✨ Create Account</h2>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endwith %}
-<form method="POST">
-    <div class="mb-3"><label class="form-label">Captcha: {{ captcha_question }}</label><input type="text" name="captcha" class="form-control" placeholder="Your answer" required></div>
-    <button type="submit" class="btn-neon">🎫 Generate Token</button>
-</form>
-<p class="text-center mt-3">Already have one? <a href="/login">Login</a></p></div></body></html>
+<html lang="en">
+<head>
+<title>Register • Access Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #020408;
+    --surface: rgba(8, 18, 32, 0.75);
+    --border: rgba(0, 170, 255, 0.18);
+    --accent: #00aaff;
+    --accent2: #00dcaa;
+    --text: #e8f4f0;
+    --muted: rgba(200, 220, 240, 0.45);
+    --radius: 28px;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bg-orbs {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.22;
+    animation: drift linear infinite;
+  }
+  .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #00aaff, transparent); top: -150px; right: -100px; animation-duration: 20s; }
+  .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #00dcaa, transparent); bottom: -100px; left: -80px; animation-duration: 25s; animation-direction: reverse; }
+  .orb-3 { width: 250px; height: 250px; background: radial-gradient(circle, #ff40aa, transparent); top: 30%; right: 20%; animation-duration: 30s; opacity: 0.12; }
+
+  @keyframes drift {
+    0%   { transform: translate(0, 0) scale(1); }
+    33%  { transform: translate(-40px, 30px) scale(1.06); }
+    66%  { transform: translate(20px, -20px) scale(0.96); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,170,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,170,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .card {
+    position: relative;
+    z-index: 10;
+    background: var(--surface);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow:
+      0 0 0 1px rgba(0,170,255,0.06),
+      0 30px 60px rgba(0,0,0,0.5),
+      0 0 80px rgba(0,170,255,0.05) inset;
+    animation: slideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(32px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 80px; height: 80px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius) 0 0 0;
+    opacity: 0.7;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 80px; height: 80px;
+    border-bottom: 2px solid var(--accent2);
+    border-right: 2px solid var(--accent2);
+    border-radius: 0 0 var(--radius) 0;
+    opacity: 0.7;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .logo-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, rgba(0,170,255,0.15), rgba(0,220,170,0.15));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    font-size: 24px;
+    box-shadow: 0 0 20px rgba(0,170,255,0.2);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,170,255,0.2); }
+    50%       { box-shadow: 0 0 35px rgba(0,170,255,0.4); }
+  }
+  .title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Info box */
+  .info-box {
+    background: rgba(0,170,255,0.06);
+    border: 1px solid rgba(0,170,255,0.2);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .info-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .info-text { font-size: 13px; color: rgba(200,220,240,0.7); line-height: 1.6; }
+  .info-text strong { color: var(--accent); }
+
+  /* Alerts */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    margin-bottom: 20px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .alert-danger  { background: rgba(255,77,109,0.1);  border-color: rgba(255,77,109,0.3);  color: #ff8fa3; }
+  .alert-success { background: rgba(0,220,170,0.1);   border-color: rgba(0,220,170,0.3);   color: var(--accent2); }
+  .alert-warning { background: rgba(255,190,50,0.1);  border-color: rgba(255,190,50,0.3);  color: #ffd166; }
+
+  /* Token display (for success state) */
+  .token-display {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,220,170,0.3);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    word-break: break-all;
+    line-height: 1.6;
+    position: relative;
+  }
+  .token-display-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  /* Form */
+  .field {
+    margin-bottom: 20px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .captcha-box {
+    background: rgba(0,170,255,0.04);
+    border: 1px dashed rgba(0,170,255,0.2);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .captcha-question {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .captcha-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    background: rgba(0,170,255,0.1);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  .input-wrap { position: relative; }
+  .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  input[type="text"],
+  input[type="number"] {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 18px 14px 44px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.25s ease;
+    -webkit-appearance: none;
+  }
+  input::placeholder { color: rgba(200,220,240,0.3); }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,170,255,0.12), 0 0 20px rgba(0,170,255,0.08);
+    background: rgba(0,170,255,0.04);
+  }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 60%;
+    width: 80%;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    background: rgba(0,170,255,0.15);
+    border: 1px solid rgba(0,170,255,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    z-index: 1;
+  }
+  .step-text {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .step.active .step-num {
+    background: var(--accent);
+    color: #020408;
+    box-shadow: 0 0 12px rgba(0,170,255,0.4);
+  }
+  .step.active .step-text { color: var(--accent); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #00aaff, #00dcaa);
+    border: none;
+    border-radius: 14px;
+    color: #020408;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-100%) skewX(-15deg);
+    transition: transform 0.4s ease;
+  }
+  .btn-primary:hover::before { transform: translateX(100%) skewX(-15deg); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,170,255,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 20px;
+  }
+  .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+  .divider-text { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .footer-links {
+    text-align: center;
+  }
+  .footer-links p { font-size: 13.5px; color: var(--muted); }
+  .footer-links a {
+    color: var(--accent2);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div class="grid-bg"></div>
+
+<div class="card">
+
+  <div class="header">
+    <div class="logo-icon">✨</div>
+    <h1 class="title">Create Account</h1>
+    <p class="subtitle">Generate your unique access token</p>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <div class="step active">
+      <div class="step-num">1</div>
+      <div class="step-text">Verify</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Generate</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Login</div>
+    </div>
+  </div>
+
+  <!-- Info box -->
+  <div class="info-box">
+    <div class="info-icon">💡</div>
+    <div class="info-text">
+      Solve the captcha to generate your <strong>unique access token</strong>. Save it securely — you'll need it to log in.
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">
+        {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" autocomplete="off">
+
+    <div class="field">
+      <label>Security Check</label>
+      <div class="captcha-box">
+        <span class="captcha-question">{{ captcha_question }}</span>
+        <span class="captcha-label">Captcha</span>
+      </div>
+      <div class="input-wrap">
+        <span class="input-icon">🔢</span>
+        <input type="text" name="captcha" placeholder="Your answer" required autocomplete="off" inputmode="numeric">
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary">
+      🎫 &nbsp; Generate My Token
+    </button>
+
+  </form>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-text">have an account?</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="footer-links">
+    <p>Already have a token? <a href="/login">Sign in →</a></p>
+  </div>
+
+</div>
+
+</body>
+</html>
 '''
 
 DASHBOARD_HTML = '''
@@ -1940,63 +2795,1266 @@ input,select{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius
 
 PRODUCTS_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Products • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Plans • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#fff; padding:20px; animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.45);backdrop-filter:blur(12px);border-radius:32px;border:1px solid rgba(0,255,200,0.2);padding:28px;margin-bottom:30px;transition:0.3s;}
-.glass-card:hover{border-color:rgba(0,255,200,0.6);transform:translateY(-3px);}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88);border:none;border-radius:60px;padding:12px 24px;font-weight:bold;color:#000;}
-.pricing-card{text-align:center;}.price{font-size:36px;font-weight:800;color:#00ffcc;}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #030508;
+  --accent: #00ffcc;
+  --accent2: #00aaff;
+  --accent3: #ff6b35;
+  --gold: #ffd700;
+  --surface: rgba(6, 16, 28, 0.7);
+  --border: rgba(0, 255, 200, 0.15);
+  --text: #cce8e0;
+  --muted: rgba(180, 220, 210, 0.45);
+  --radius: 24px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 32px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── Background ── */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  animation: orbFloat linear infinite;
+}
+.orb-a { width: 600px; height: 600px; background: radial-gradient(#00ffcc22, transparent 70%); top: -200px; left: -150px; animation-duration: 20s; }
+.orb-b { width: 500px; height: 500px; background: radial-gradient(#00aaff1a, transparent 70%); bottom: -150px; right: -100px; animation-duration: 26s; animation-direction: reverse; }
+.orb-c { width: 300px; height: 300px; background: radial-gradient(#ff6b3514, transparent 70%); top: 40%; right: 10%; animation-duration: 33s; }
+
+@keyframes orbFloat {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(40px,-30px) scale(1.07); }
+  66%  { transform: translate(-20px, 20px) scale(0.95); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* ── Scanline effect ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+}
+
+/* ── Layout ── */
+.container {
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 48px;
+  animation: slideDown 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes slideDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent); border-color: var(--border); background: rgba(0,255,200,0.05); }
+
+.page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Hero text ── */
+.hero {
+  text-align: center;
+  margin-bottom: 56px;
+  animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+.hero-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 900;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+  letter-spacing: -1px;
+}
+@keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+
+.hero-sub {
+  color: var(--muted);
+  font-size: 17px;
+  margin-top: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Plans grid ── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+/* ── Plan card ── */
+.plan-card {
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+  animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  cursor: default;
+}
+.plan-card:nth-child(1) { animation-delay: 0.1s; }
+.plan-card:nth-child(2) { animation-delay: 0.2s; }
+.plan-card:nth-child(3) { animation-delay: 0.3s; }
+.plan-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(30px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.plan-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.plan-card:hover {
+  border-color: rgba(0,255,200,0.45);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,200,0.08);
+}
+.plan-card:hover::before { opacity: 1; }
+
+/* Popular badge */
+.plan-card.popular {
+  border-color: rgba(0,255,200,0.4);
+  background: rgba(0,255,200,0.05);
+}
+.popular-badge {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #020408;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* Plan name */
+.plan-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* Price */
+.price-wrap {
+  margin-bottom: 24px;
+}
+.price {
+  font-family: 'Orbitron', monospace;
+  font-size: 42px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(0,255,200,0.3);
+}
+.price-period {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Divider */
+.card-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,200,0.2), transparent);
+  margin: 0 -8px 24px;
+}
+
+/* Specs */
+.specs {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 28px;
+}
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  letter-spacing: 0.3px;
+}
+.spec-item:last-child { border-bottom: none; }
+.spec-icon {
+  width: 28px; height: 28px;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.15);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.spec-label { color: var(--muted); font-size: 12px; flex: 1; }
+.spec-value { font-weight: 700; color: var(--text); }
+
+/* CTA button */
+.btn-cta {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.12), rgba(0,170,255,0.12));
+  border: 1px solid rgba(0,255,200,0.3);
+  border-radius: 12px;
+  color: var(--accent);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,170,255,0.15));
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.btn-cta:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(0,255,200,0.2); transform: translateY(-1px); color: var(--accent); }
+.btn-cta:hover::before { opacity: 1; }
+
+.plan-card.popular .btn-cta {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent;
+  color: #020408;
+  font-weight: 800;
+}
+.plan-card.popular .btn-cta:hover { box-shadow: 0 0 30px rgba(0,255,200,0.4); transform: translateY(-1px); color: #020408; }
+.plan-card.popular .btn-cta::before { display: none; }
+
+/* ── Custom plan banner ── */
+.custom-banner {
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0,170,255,0.2);
+  border-radius: var(--radius);
+  padding: 36px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) 0.5s both;
+  position: relative;
+  overflow: hidden;
+}
+.custom-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,170,255,0.04), transparent 60%);
+  pointer-events: none;
+}
+.custom-left { flex: 1; min-width: 200px; }
+.custom-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent2);
+  margin-bottom: 6px;
+}
+.custom-sub { color: var(--muted); font-size: 15px; }
+
+.btn-telegram {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #0088cc, #00aaff);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  color: #fff;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,136,204,0.3);
+}
+.btn-telegram:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,136,204,0.45); color: #fff; }
+.btn-telegram i { font-size: 16px; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .plans-grid { grid-template-columns: 1fr; }
+  .custom-banner { flex-direction: column; text-align: center; }
+  .hero-title { font-size: 28px; }
+  .topbar { flex-direction: column; gap: 12px; }
+}
 </style>
 </head>
-<body><div class="container py-4">
-<div class="d-flex justify-content-between align-items-center mb-4"><h2 style="color:#00ffcc;">🚀 Upgrade Your Plan</h2><a href="/dashboard" class="btn btn-link text-info">← Back</a></div>
-<div class="row g-4">
-{% for plan in plans %}
-<div class="col-md-3"><div class="glass-card pricing-card"><h3>{{ plan.name }}</h3><div class="price">{{ plan.price }}</div>
-<div class="mt-3"><p><i class="fas fa-layer-group"></i> {{ plan.concurrent }} Concurrent</p><p><i class="fas fa-hourglass-half"></i> {{ plan.duration }}s Max</p><p><i class="fas fa-microchip"></i> {{ plan.threads }} Threads</p></div>
-<a href="https://t.me/Ig_ansh" target="_blank" class="btn-neon mt-3" style="display:inline-block; text-decoration:none;">💬 Contact on Telegram</a></div></div>
-{% endfor %}
+<body>
+
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+  <div class="bg-orb orb-c"></div>
 </div>
-<div class="glass-card mt-4 text-center"><h4>Need a custom plan?</h4><p>Reach out directly on Telegram:</p>
-<a href="https://t.me/Ig_ansh" target="_blank" class="btn-neon" style="display:inline-block; text-decoration:none;"><i class="fab fa-telegram-plane me-2"></i>@Ig_ansh</a></div>
-</div></body></html>
+<div class="scanlines"></div>
+
+<div class="container">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <div class="page-badge"><i class="fas fa-bolt"></i> &nbsp; Upgrade Plan</div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1 class="hero-title">Choose Your Plan</h1>
+    <p class="hero-sub">Scalable power. Instant access. Zero limits.</p>
+  </div>
+
+  <!-- Plans -->
+  <div class="plans-grid">
+    {% for plan in plans %}
+    <div class="plan-card {% if loop.index == 2 %}popular{% endif %}">
+      {% if loop.index == 2 %}<div class="popular-badge">⚡ Popular</div>{% endif %}
+
+      <div class="plan-name">{{ plan.name }}</div>
+
+      <div class="price-wrap">
+        <div class="price">{{ plan.price }}</div>
+        <div class="price-period">per month</div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <ul class="specs">
+        <li class="spec-item">
+          <div class="spec-icon"><i class="fas fa-layer-group"></i></div>
+          <span class="spec-label">Concurrent</span>
+          <span class="spec-value">{{ plan.concurrent }}</span>
+        </li>
+        <li class="spec-item">
+          <div class="spec-icon"><i class="fas fa-hourglass-half"></i></div>
+          <span class="spec-label">Max Duration</span>
+          <span class="spec-value">{{ plan.duration }}s</span>
+        </li>
+        <li class="spec-item">
+          <div class="spec-icon"><i class="fas fa-microchip"></i></div>
+          <span class="spec-label">Threads</span>
+          <span class="spec-value">{{ plan.threads }}</span>
+        </li>
+      </ul>
+
+      <a href="https://t.me/Ig_ansh" target="_blank" class="btn-cta">
+        <i class="fab fa-telegram-plane"></i> &nbsp; Get This Plan
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Custom plan -->
+  <div class="custom-banner">
+    <div class="custom-left">
+      <div class="custom-title">🛠️ Need Something Custom?</div>
+      <div class="custom-sub">Higher limits, dedicated resources, or special configurations — reach out directly.</div>
+    </div>
+    <a href="https://t.me/Ig_ansh" target="_blank" class="btn-telegram">
+      <i class="fab fa-telegram-plane"></i> Contact @Ig_ansh
+    </a>
+  </div>
+
+</div>
+</body>
+</html>
 '''
 
 REDEEM_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Redeem Key</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000);color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
-.glass-card{background:rgba(15,25,45,0.6);backdrop-filter:blur(12px);border-radius:32px;border:1px solid rgba(0,255,200,0.2);padding:40px;width:100%;max-width:450px;box-shadow:0 20px 40px rgba(0,0,0,0.4);}
-input{background:rgba(0,0,0,0.5);border:1px solid #2a3a5a;border-radius:40px;padding:12px 20px;color:white;width:100%;margin-bottom:20px;}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88);border:none;border-radius:40px;padding:12px;font-weight:bold;width:100%;}
-a{color:#00ffcc;text-decoration:none;}</style>
-</head><body><div class="glass-card"><h2 class="text-center mb-4" style="color:#00ffcc;">🔑 Redeem Access Key</h2>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="alert alert-{{cat}}">{{msg}}</div>{% endfor %}{% endwith %}
-<form method="POST"><input type="text" name="key" placeholder="Enter your key" required><button type="submit" class="btn-neon">Redeem</button></form>
-<p class="text-center mt-3"><a href="/login">Back to login</a> | <a href="/register">Register</a></p></div></body></html>
+<html lang="en">
+<head>
+<title>Redeem Key • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #030508;
+  --surface: rgba(6, 16, 28, 0.75);
+  --border: rgba(0, 255, 200, 0.18);
+  --accent: #00ffcc;
+  --accent2: #00aaff;
+  --text: #cce8e0;
+  --muted: rgba(180, 220, 210, 0.45);
+  --radius: 28px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+}
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.2;
+  pointer-events: none;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 500px; height: 500px; background: radial-gradient(#00ffcc, transparent 70%); top: -180px; left: -120px; animation-duration: 22s; z-index: 0; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#00aaff, transparent 70%); bottom: -120px; right: -80px; animation-duration: 28s; animation-direction: reverse; z-index: 0; }
+
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(30px,-25px) scale(1.06); }
+  66%  { transform: translate(-20px,18px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* Card */
+.card {
+  position: relative;
+  z-index: 10;
+  background: var(--surface);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 80px rgba(0,255,200,0.04) inset;
+  animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Corner accents */
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.8;
+}
+.card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.8;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.icon-wrap {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.12), rgba(0,170,255,0.12));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 28px;
+  animation: glow 3s ease-in-out infinite;
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,255,200,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(0,255,200,0.45); }
+}
+
+.title {
+  font-family: 'Orbitron', monospace;
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.alert-danger  { background: rgba(255,77,109,0.1);  border-color: rgba(255,77,109,0.3);  color: #ff8fa3; }
+.alert-success { background: rgba(0,255,200,0.08);  border-color: rgba(0,255,200,0.3);   color: var(--accent); }
+.alert-warning { background: rgba(255,190,50,0.1);  border-color: rgba(255,190,50,0.3);  color: #ffd166; }
+
+/* Key input area */
+.key-field { margin-bottom: 24px; }
+
+.key-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.key-input-wrap {
+  position: relative;
+}
+
+.key-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+input[type="text"] {
+  width: 100%;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 15px 18px 15px 50px;
+  color: var(--text);
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+input::placeholder {
+  color: rgba(180,220,210,0.25);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,200,0.1), 0 0 20px rgba(0,255,200,0.07);
+  background: rgba(0,255,200,0.03);
+}
+
+/* Key segments hint */
+.key-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 4px;
+}
+.key-seg {
+  font-size: 11px;
+  font-family: 'Orbitron', monospace;
+  color: rgba(0,255,200,0.3);
+  letter-spacing: 1px;
+}
+.key-sep { color: rgba(255,255,255,0.15); font-size: 11px; }
+
+/* Submit button */
+.btn-redeem {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: 14px;
+  color: #020408;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn-redeem::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.18);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-redeem:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-redeem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,255,200,0.35);
+}
+.btn-redeem:active { transform: translateY(0); }
+
+/* Info box */
+.info-box {
+  background: rgba(0,170,255,0.05);
+  border: 1px solid rgba(0,170,255,0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.info-box-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.info-box-text { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.info-box-text strong { color: var(--accent2); }
+
+/* Footer links */
+.footer {
+  text-align: center;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: color 0.2s;
+}
+.footer a:hover { color: #fff; }
+.footer-sep { color: rgba(255,255,255,0.15); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="card">
+
+  <div class="header">
+    <div class="icon-wrap">🔑</div>
+    <h1 class="title">Redeem Key</h1>
+    <p class="subtitle">Enter your access key to unlock your plan</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">
+        {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" autocomplete="off">
+
+    <div class="key-field">
+      <label class="key-label">Access Key</label>
+      <div class="key-input-wrap">
+        <span class="key-icon">🗝️</span>
+        <input type="text" name="key" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" spellcheck="false">
+      </div>
+      <div class="key-hint">
+        <span class="key-seg">XXXX</span>
+        <span class="key-sep">—</span>
+        <span class="key-seg">XXXX</span>
+        <span class="key-sep">—</span>
+        <span class="key-seg">XXXX</span>
+        <span class="key-sep">—</span>
+        <span class="key-seg">XXXX</span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-redeem">⚡ Activate Key</button>
+
+  </form>
+
+  <div class="info-box">
+    <div class="info-box-icon">💡</div>
+    <div class="info-box-text">
+      Keys are <strong>single-use</strong> and tied to your account once redeemed. Contact support if your key isn't working.
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="/login">← Back to Login</a>
+    <span class="footer-sep">|</span>
+    <a href="/register">Register</a>
+  </div>
+
+</div>
+
+</body>
+</html>
 '''
 
 ADMIN_LOGIN_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Admin Login • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#fff; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px; animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.6); backdrop-filter:blur(12px); border-radius:32px; border:1px solid rgba(255,0,100,0.3); padding:40px; width:100%; max-width:450px; box-shadow:0 20px 40px rgba(0,0,0,0.4);}
-input{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius:40px; padding:12px 20px; color:white; width:100%; margin-bottom:20px;}
-.btn-admin{background:linear-gradient(90deg,#ff3366,#ff6680); border:none; border-radius:40px; padding:12px; font-weight:bold; width:100%;}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+<html lang="en">
+<head>
+<title>Admin Login • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.78);
+  --border: rgba(255, 40, 100, 0.2);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --accent3: #ff99aa;
+  --text: #f0d0d8;
+  --muted: rgba(220, 170, 185, 0.45);
+  --radius: 28px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+}
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.18;
+  pointer-events: none;
+  animation: drift linear infinite;
+  z-index: 0;
+}
+.orb-1 { width: 550px; height: 550px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -100px; animation-duration: 20s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#9900ff, transparent 70%); bottom: -150px; left: -80px; animation-duration: 26s; animation-direction: reverse; }
+.orb-3 { width: 250px; height: 250px; background: radial-gradient(#ff6600, transparent 70%); top: 50%; left: 40%; animation-duration: 34s; opacity: 0.1; }
+
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-35px, 25px) scale(1.06); }
+  66%  { transform: translate(20px,-18px) scale(0.95); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* Scanlines */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.07) 3px,
+    rgba(0,0,0,0.07) 4px
+  );
+}
+
+/* Card */
+.card {
+  position: relative;
+  z-index: 10;
+  background: var(--surface);
+  backdrop-filter: blur(22px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.6),
+    0 0 80px rgba(255,40,100,0.05) inset;
+  animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Corner accents — red theme */
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+}
+.card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+}
+
+/* Restricted banner */
+.restricted-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,40,100,0.08);
+  border: 1px solid rgba(255,40,100,0.2);
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent2);
+}
+.restricted-dot {
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent);
+  animation: blink 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.icon-wrap {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, rgba(255,40,100,0.15), rgba(153,0,255,0.1));
+  border: 1px solid rgba(255,40,100,0.3);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 28px;
+  animation: adminGlow 3s ease-in-out infinite;
+}
+@keyframes adminGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,40,100,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(255,40,100,0.45); }
+}
+.title {
+  font-family: 'Orbitron', monospace;
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+  letter-spacing: -0.5px;
+}
+@keyframes shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-top: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.alert-danger  { background: rgba(255,77,109,0.1);  border-color: rgba(255,77,109,0.3);  color: #ff8fa3; }
+.alert-success { background: rgba(0,255,200,0.08);  border-color: rgba(0,255,200,0.25);  color: #00ffcc; }
+.alert-warning { background: rgba(255,190,50,0.1);  border-color: rgba(255,190,50,0.3);  color: #ffd166; }
+
+/* Fields */
+.field {
+  margin-bottom: 18px;
+}
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.input-wrap { position: relative; }
+.input-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 14px 18px 14px 48px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+}
+input::placeholder { color: rgba(220,170,185,0.28); }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1), 0 0 20px rgba(255,40,100,0.07);
+  background: rgba(255,40,100,0.03);
+}
+
+/* Show/hide password */
+.toggle-pass {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  transition: color 0.2s;
+  line-height: 1;
+}
+.toggle-pass:hover { color: var(--accent2); }
+
+/* Submit */
+.btn-admin {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.btn-admin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.12);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-admin:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-admin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255,40,100,0.4);
+}
+.btn-admin:active { transform: translateY(0); }
+
+/* Warning note */
+.warn-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,150,0,0.06);
+  border: 1px solid rgba(255,150,0,0.15);
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: rgba(255,200,100,0.6);
+  letter-spacing: 0.2px;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  margin-top: 24px;
+}
+.footer a {
+  color: rgba(220,170,185,0.5);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: color 0.2s;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 6px 16px;
+  display: inline-block;
+}
+.footer a:hover { color: var(--accent2); border-color: rgba(255,40,100,0.2); background: rgba(255,40,100,0.04); }
 </style>
 </head>
-<body><div class="glass-card"><h2 class="text-center mb-4" style="color:#ff6680;">👑 Admin Login</h2>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endwith %}
-<form method="POST"><input type="text" name="username" placeholder="Admin Username" required><input type="password" name="password" placeholder="Admin Password" required><button type="submit" class="btn-admin">🔐 Login as Admin</button></form>
-<p class="text-center mt-3"><a href="/login">← User Login</a></p></div></body></html>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="scanlines"></div>
+
+<div class="card">
+
+  <!-- Restricted access banner -->
+  <div class="restricted-bar">
+    <div class="restricted-dot"></div>
+    Restricted Access — Authorized Personnel Only
+  </div>
+
+  <div class="header">
+    <div class="icon-wrap">👑</div>
+    <h1 class="title">Admin Portal</h1>
+    <p class="subtitle">Elevated privileges required</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">
+        {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" autocomplete="off">
+
+    <div class="field">
+      <label>Username</label>
+      <div class="input-wrap">
+        <span class="input-icon">👤</span>
+        <input type="text" name="username" placeholder="Admin username" required autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" name="password" id="passInput" placeholder="Admin password" required autocomplete="off">
+        <button type="button" class="toggle-pass" onclick="togglePass()" id="toggleBtn">👁️</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-admin">🔐 &nbsp; Authenticate</button>
+
+  </form>
+
+  <div class="warn-note">
+    ⚠️ All admin activity is logged and monitored.
+  </div>
+
+  <div class="footer">
+    <a href="/login">← Back to User Login</a>
+  </div>
+
+</div>
+
+<script>
+  function togglePass() {
+    const input = document.getElementById('passInput');
+    const btn = document.getElementById('toggleBtn');
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+  }
+</script>
+
+</body>
+</html>
 '''
 
 ADMIN_DASHBOARD_ENHANCED_HTML = '''
@@ -2060,66 +4118,939 @@ async function stopAttack(){if(!confirm('Stop all attacks?'))return;try{await fe
 
 ADMIN_NODES_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Admin Nodes • STRESSER</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Node Management • Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>body{background:#0a0a1a;color:#fff;padding:20px;}.glass-card{background:rgba(15,25,45,0.45);border-radius:24px;padding:20px;margin-bottom:20px;}
-.status-online{color:#00ff88;}.status-offline{color:#ff6680;}table{width:100%;border-collapse:collapse;}th,td{padding:12px;border-bottom:1px solid #2a3a5a;}</style>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --surface2: rgba(12, 4, 20, 0.6);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section headings */
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Add node grid */
+.add-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s ease 0.1s both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* Cards */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-header {
+  padding: 14px 20px;
+  background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 24px; }
+
+/* Form elements */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 11px 16px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+}
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+input[type="file"].form-input { padding: 9px 14px; cursor: pointer; }
+
+/* Checkbox */
+.check-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+}
+.check-row input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent);
+  cursor: pointer; flex-shrink: 0;
+}
+.check-row label { font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 22px; border: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 11px;
+  font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.22s ease;
+  text-decoration: none; white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+
+.btn-warning {
+  background: linear-gradient(135deg, #ffaa00, #ff7700);
+  color: #0a0200;
+  box-shadow: 0 4px 14px rgba(255,160,0,0.2);
+}
+.btn-warning:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,160,0,0.35); }
+
+.btn-sm {
+  padding: 6px 14px; font-size: 10px; letter-spacing: 1px;
+  border-radius: 8px;
+}
+.btn-info    { background: rgba(0,170,255,0.15); border: 1px solid rgba(0,170,255,0.3); color: var(--blue); }
+.btn-info:hover { background: rgba(0,170,255,0.25); transform: translateY(-1px); }
+.btn-toggle  { background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.25); color: var(--yellow); }
+.btn-toggle:hover { background: rgba(255,200,0,0.22); transform: translateY(-1px); }
+.btn-danger  { background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.3); color: var(--accent2); }
+.btn-danger:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+
+/* Binary upload panel */
+.binary-panel {
+  animation: fadeUp 0.6s ease 0.2s both;
+  margin-bottom: 24px;
+}
+.binary-row {
+  display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+}
+.binary-row .field { flex: 1; min-width: 200px; margin-bottom: 0; }
+.binary-note { font-size: 12px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+
+/* Table */
+.table-panel { animation: fadeUp 0.6s ease 0.3s both; }
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%; border-collapse: collapse;
+}
+thead tr {
+  background: rgba(255,40,100,0.06);
+  border-bottom: 1px solid var(--border);
+}
+th {
+  padding: 12px 16px;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; text-align: left;
+}
+td {
+  padding: 14px 16px;
+  font-size: 14px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+tbody tr { transition: background 0.2s; }
+tbody tr:hover { background: rgba(255,40,100,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Status badges */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}
+.status-online  { background: rgba(0,255,170,0.1);  border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.status-offline { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.25); color: var(--accent2); }
+.status-unknown { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--muted); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.status-online  .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s ease infinite; }
+.status-offline .status-dot { background: var(--accent); }
+.status-unknown .status-dot { background: rgba(255,255,255,0.3); }
+
+/* Type pill */
+.type-pill {
+  display: inline-block;
+  padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.type-github { background: rgba(0,170,255,0.1); border:1px solid rgba(0,170,255,0.2); color: var(--blue); }
+.type-vps    { background: rgba(255,200,0,0.1);  border:1px solid rgba(255,200,0,0.2);  color: var(--yellow); }
+
+/* Enabled icon */
+.icon-yes { color: var(--green); font-size: 15px; }
+.icon-no  { color: var(--accent); font-size: 15px; }
+
+/* Binary icon */
+.bin-yes { color: var(--green); }
+.bin-no  { color: var(--accent2); }
+
+/* Action group */
+.action-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.action-group form { display: inline; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--muted); font-size: 15px;
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .add-grid { grid-template-columns: 1fr; }
+  .binary-row { flex-direction: column; }
+  .topbar { flex-direction: column; align-items: flex-start; }
+}
+</style>
 </head>
-<body><div class="container"><div class="glass-card"><h2>Attack Node Management</h2><a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
-<div class="row g-4">
-<div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add GitHub Node</div><div class="card-body">
-<form method="POST" action="/admin/nodes/add_github"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
-<input type="text" name="github_token" placeholder="GitHub Token" class="form-control mb-2" required>
-<input type="text" name="github_repo" placeholder="Repo Name (default: InfernoCore)" class="form-control mb-2">
-<div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div>
-<button type="submit" class="btn btn-primary">Add GitHub Node</button></form></div></div></div>
-<div class="col-md-6"><div class="card bg-dark"><div class="card-header">➕ Add VPS Node</div><div class="card-body">
-<form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data"><input type="text" name="name" placeholder="Node Name" class="form-control mb-2" required>
-<input type="text" name="vps_host" placeholder="VPS Host (IP)" class="form-control mb-2" required>
-<input type="number" name="vps_port" placeholder="Port (default 22)" class="form-control mb-2" value="22">
-<input type="text" name="vps_username" placeholder="Username" class="form-control mb-2" required>
-<input type="password" name="vps_password" placeholder="Password (or leave empty for key)" class="form-control mb-2">
-<div class="mb-2"><label>SSH Private Key (.pem file) – optional</label><input type="file" name="vps_key_file" class="form-control" accept=".pem,.key"></div>
-<div class="form-check mb-2"><input type="checkbox" name="enabled" class="form-check-input" checked> <label class="form-check-label">Enabled</label></div>
-<button type="submit" class="btn btn-primary">Add VPS Node</button></form></div></div></div>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <h1 class="page-title">Node Management</h1>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
+  </div>
+
+  <!-- Add Nodes -->
+  <div class="section-title"><i class="fas fa-plus-circle"></i> Add Node</div>
+  <div class="add-grid">
+
+    <!-- GitHub Node -->
+    <div class="panel">
+      <div class="panel-header"><i class="fab fa-github"></i> GitHub Node</div>
+      <div class="panel-body">
+        <form method="POST" action="/admin/nodes/add_github">
+          <div class="field">
+            <label>Node Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. gh-node-01" required>
+          </div>
+          <div class="field">
+            <label>GitHub Token</label>
+            <input type="text" name="github_token" class="form-input" placeholder="ghp_xxxxxxxxxxxx" required>
+          </div>
+          <div class="field">
+            <label>Repository Name</label>
+            <input type="text" name="github_repo" class="form-input" placeholder="InfernoCore (default)">
+          </div>
+          <div class="check-row">
+            <input type="checkbox" name="enabled" id="gh-enabled" checked>
+            <label for="gh-enabled">Enable immediately</label>
+          </div>
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary"><i class="fab fa-github"></i> Add GitHub Node</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- VPS Node -->
+    <div class="panel">
+      <div class="panel-header"><i class="fas fa-server"></i> VPS Node</div>
+      <div class="panel-body">
+        <form method="POST" action="/admin/nodes/add_vps" enctype="multipart/form-data">
+          <div class="field">
+            <label>Node Name</label>
+            <input type="text" name="name" class="form-input" placeholder="e.g. vps-node-01" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:12px;">
+            <div class="field">
+              <label>VPS Host / IP</label>
+              <input type="text" name="vps_host" class="form-input" placeholder="192.168.1.100" required>
+            </div>
+            <div class="field">
+              <label>Port</label>
+              <input type="number" name="vps_port" class="form-input" value="22" style="width:80px;">
+            </div>
+          </div>
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="vps_username" class="form-input" placeholder="root" required>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="vps_password" class="form-input" placeholder="Leave empty to use SSH key">
+          </div>
+          <div class="field">
+            <label>SSH Private Key (.pem / .key) — optional</label>
+            <input type="file" name="vps_key_file" class="form-input" accept=".pem,.key">
+          </div>
+          <div class="check-row">
+            <input type="checkbox" name="enabled" id="vps-enabled" checked>
+            <label for="vps-enabled">Enable immediately</label>
+          </div>
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-server"></i> Add VPS Node</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Binary Upload -->
+  <div class="section-title"><i class="fas fa-upload"></i> Binary Distribution</div>
+  <div class="panel binary-panel">
+    <div class="panel-header"><i class="fas fa-microchip"></i> Distribute Binary (primex)</div>
+    <div class="panel-body">
+      <form method="POST" action="/admin/upload_binary" enctype="multipart/form-data">
+        <div class="binary-row">
+          <div class="field">
+            <label>Select compiled binary</label>
+            <input type="file" name="binary" class="form-input" required>
+          </div>
+          <button type="submit" class="btn btn-warning"><i class="fas fa-rocket"></i> Upload & Distribute</button>
+        </div>
+        <div class="binary-note">
+          <i class="fas fa-info-circle"></i>
+          Upload the compiled <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-size:11px;">primex</code> binary. It will be pushed to all enabled nodes automatically.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Nodes Table -->
+  <div class="section-title"><i class="fas fa-network-wired"></i> Active Nodes</div>
+  <div class="panel table-panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Enabled</th>
+            <th>Status</th>
+            <th>Binary</th>
+            <th>Details</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in nodes %}
+          <tr>
+            <td><strong style="color:var(--text);">{{ n.name }}</strong></td>
+            <td>
+              {% if n.node_type == 'github' %}
+                <span class="type-pill type-github"><i class="fab fa-github"></i> GitHub</span>
+              {% else %}
+                <span class="type-pill type-vps"><i class="fas fa-server"></i> VPS</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if n.enabled %}
+                <i class="fas fa-check-circle icon-yes"></i>
+              {% else %}
+                <i class="fas fa-times-circle icon-no"></i>
+              {% endif %}
+            </td>
+            <td>
+              {% if n.status_detail == 'active' %}
+                <span class="status-badge status-online"><span class="status-dot"></span>Active</span>
+              {% elif n.status_detail == 'offline' %}
+                <span class="status-badge status-offline"><span class="status-dot"></span>Offline</span>
+              {% else %}
+                <span class="status-badge status-unknown"><span class="status-dot"></span>{{ n.status_detail | default('Unknown') }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if n.binary_present %}
+                <i class="fas fa-check bin-yes" title="Binary present"></i>
+              {% else %}
+                <i class="fas fa-times bin-no" title="No binary"></i>
+              {% endif %}
+            </td>
+            <td style="font-size:13px; color:var(--muted); font-family:'Orbitron',monospace; font-size:11px;">
+              {% if n.node_type == 'github' %}
+                {{ n.github_repo }}
+              {% else %}
+                {{ n.vps_host }}:{{ n.vps_port }}
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-group">
+                <form method="POST" action="/admin/nodes/{{ n.id }}/check">
+                  <button type="submit" class="btn btn-sm btn-info" title="Check status"><i class="fas fa-satellite-dish"></i> Check</button>
+                </form>
+                <form method="POST" action="/admin/nodes/{{ n.id }}/toggle">
+                  <button type="submit" class="btn btn-sm btn-toggle" title="Toggle enable/disable"><i class="fas fa-power-off"></i> Toggle</button>
+                </form>
+                <form method="POST" action="/admin/nodes/{{ n.id }}/delete" onsubmit="return confirm('Delete node {{ n.name }}? This cannot be undone.')">
+                  <button type="submit" class="btn btn-sm btn-danger" title="Delete node"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon">🖥️</div>
+                No nodes configured yet. Add a GitHub or VPS node above.
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
-<div class="card bg-dark mt-4"><div class="card-header">📤 Distribute Binary (primex)</div><div class="card-body">
-<form method="POST" action="/admin/upload_binary" enctype="multipart/form-data" class="row g-2">
-<div class="col-md-8"><input type="file" name="binary" class="form-control bg-dark text-white" required></div>
-<div class="col-md-4"><button type="submit" class="btn btn-warning">Upload & Distribute</button></div></form><small class="text-muted">Upload compiled 'primex' binary.</small></div></div>
-<div class="table-responsive mt-4"><table class="table table-dark"><thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Status</th><th>Binary</th><th>Details</th><th>Actions</th></tr></thead>
-<tbody>{% for n in nodes %}<tr><td>{{ n.name }}</td><td>{{ n.node_type }}</td><td>{% if n.enabled %}<span class="text-success">✔</span>{% else %}<span class="text-danger">✘</span>{% endif %}</td>
-<td class="{% if n.status_detail=='active' %}status-online{% else %}status-offline{% endif %}">{{ n.status_detail|default('unknown') }}</td>
-<td>{% if n.binary_present %}<span class="text-success">✓</span>{% else %}<span class="text-danger">✗</span>{% endif %}</td>
-<td>{% if n.node_type=='github' %}{{ n.github_repo }}{% else %}{{ n.vps_host }}:{{ n.vps_port }}{% endif %}</td>
-<td><form method="POST" action="/admin/nodes/{{ n.id }}/check" style="display:inline"><button class="btn btn-sm btn-info">Check</button></form>
-<form method="POST" action="/admin/nodes/{{ n.id }}/toggle" style="display:inline"><button class="btn btn-sm btn-warning">Toggle</button></form>
-<form method="POST" action="/admin/nodes/{{ n.id }}/delete" style="display:inline" onsubmit="return confirm('Delete node?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></div></body></html>
+</body>
+</html>
 '''
 
 ADMIN_KEYS_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Key Management</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Key Management • Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>body{background:#0a0a1a;color:#fff;padding:20px;}.glass-card{background:rgba(15,25,45,0.5);border-radius:24px;padding:20px;}</style>
-</head><body><div class="container"><div class="glass-card"><h3><i class="fas fa-key me-2"></i>Key Management</h3>
-<a href="/admin/dashboard" class="btn btn-secondary mb-3">← Back</a>
-<form method="POST" action="/admin/keys/generate" class="row g-3 mb-4">
-  <div class="col-md-3">
-    <select name="plan" class="form-select bg-dark text-white">
-      {% for p in plans %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}
-    </select>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060208;
+  --surface: rgba(18, 6, 16, 0.75);
+  --border: rgba(255, 40, 100, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --text: #f0d0d8;
+  --muted: rgba(220,170,185,0.45);
+  --radius: 20px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,40,100,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,40,100,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#ff3366, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#6600ff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+  animation: fadeDown 0.5s ease both;
+}
+@keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent2); border-color: var(--border); background: rgba(255,40,100,0.05); }
+
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,40,100,0.08); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent2);
+}
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* Section headings */
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.panel-header {
+  padding: 14px 20px;
+  background: rgba(255,40,100,0.07);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent2);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-body { padding: 24px; }
+
+/* Generate form */
+.gen-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr;
+  gap: 14px; align-items: end;
+  animation: fadeUp 0.6s ease 0.1s both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 11px 16px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+}
+.form-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6680' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.form-input::placeholder { color: rgba(220,170,185,0.25); }
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,40,100,0.1);
+  background: rgba(255,40,100,0.03);
+}
+.form-select option { background: #1a0a14; color: var(--text); }
+
+.btn-generate {
+  width: 100%; padding: 11px 20px;
+  background: linear-gradient(135deg, var(--accent), #cc2255);
+  border: none; border-radius: 10px;
+  color: #fff; font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  transition: all 0.22s ease; display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(255,40,100,0.25);
+}
+.btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,40,100,0.4); }
+.btn-generate:active { transform: translateY(0); }
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s ease 0.15s both;
+}
+.stat-card {
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.stat-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.stat-icon.green { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.2); color: var(--green); }
+.stat-icon.blue  { background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.2); color: var(--blue); }
+.stat-icon.red   { background: rgba(255,40,100,0.1); border: 1px solid rgba(255,40,100,0.2); color: var(--accent2); }
+.stat-val { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
+
+/* Table */
+.table-panel { animation: fadeUp 0.6s ease 0.2s both; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(255,40,100,0.06); border-bottom: 1px solid var(--border); }
+th {
+  padding: 12px 16px; font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; text-align: left;
+}
+td {
+  padding: 13px 16px; font-size: 14px; font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+tbody tr { transition: background 0.2s; }
+tbody tr:hover { background: rgba(255,40,100,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Key code */
+.key-code {
+  font-family: 'Orbitron', monospace; font-size: 11px;
+  color: var(--accent2); letter-spacing: 1px;
+  background: rgba(255,40,100,0.07);
+  border: 1px solid rgba(255,40,100,0.15);
+  border-radius: 6px; padding: 4px 10px;
+  display: inline-block; max-width: 220px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer; transition: background 0.2s;
+  vertical-align: middle;
+}
+.key-code:hover { background: rgba(255,40,100,0.14); }
+
+/* Copy btn */
+.copy-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 13px; padding: 0 0 0 6px;
+  transition: color 0.2s; vertical-align: middle;
+}
+.copy-btn:hover { color: var(--accent2); }
+
+/* Plan pill */
+.plan-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase;
+  background: rgba(255,200,0,0.1); border: 1px solid rgba(255,200,0,0.2); color: var(--yellow);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}
+.s-active   { background: rgba(0,255,170,0.1);  border: 1px solid rgba(0,255,170,0.25); color: var(--green); }
+.s-used     { background: rgba(0,170,255,0.1);  border: 1px solid rgba(0,170,255,0.25); color: var(--blue); }
+.s-inactive { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--muted); }
+.s-dot { width: 5px; height: 5px; border-radius: 50%; }
+.s-active .s-dot   { background: var(--green); box-shadow: 0 0 5px var(--green); animation: blink 2s infinite; }
+.s-used .s-dot     { background: var(--blue); }
+.s-inactive .s-dot { background: rgba(255,255,255,0.3); }
+
+/* Action button */
+.btn-del {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border: none; border-radius: 8px;
+  background: rgba(255,40,100,0.12); border: 1px solid rgba(255,40,100,0.25);
+  color: var(--accent2); font-family: 'Orbitron', monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-del:hover { background: rgba(255,40,100,0.22); transform: translateY(-1px); }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-icon  { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .gen-form { grid-template-columns: 1fr 1fr; }
+  .stats-row { grid-template-columns: 1fr; }
+  .topbar { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .gen-form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/admin/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <h1 class="page-title">Key Management</h1>
+    <div class="admin-badge"><div class="badge-dot"></div> Admin Panel</div>
   </div>
-  <div class="col-md-2"><input type="number" name="days" class="form-control" placeholder="Days" value="30"></div>
-  <div class="col-md-2"><input type="number" name="count" class="form-control" placeholder="Count" value="1"></div>
-  <div class="col-md-5"><button class="btn btn-success w-100"><i class="fas fa-plus"></i> Generate Keys</button></div>
-</form>
-<table class="table table-dark"><thead><tr><th>Key</th><th>Plan</th><th>Days</th><th>Created</th><th>Used By</th><th>Status</th><th>Action</th></tr></thead>
-<tbody>{% for k in keys %}<tr><td><code>{{ k.key }}</code></td><td>{{ k.plan }}</td><td>{{ k.duration_days }}</td><td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
-<td>{{ k.used_by or '-' }}</td><td>{% if k.active and not k.used_by %}<span class="badge bg-success">Active</span>{% elif k.used_by %}<span class="badge bg-info">Used</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-<td><form method="POST" action="/admin/keys/{{ k.id }}/delete" onsubmit="return confirm('Delete?')"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{% endfor %}</tbody></table></div></div></body></html>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-key"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | selectattr('active') | selectattr('used_by', 'none') | list | length }}</div>
+        <div class="stat-label">Active Keys</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-check-circle"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | selectattr('used_by') | list | length }}</div>
+        <div class="stat-label">Used Keys</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-layer-group"></i></div>
+      <div>
+        <div class="stat-val">{{ keys | length }}</div>
+        <div class="stat-label">Total Keys</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="section-title"><i class="fas fa-plus-circle"></i> Generate Keys</div>
+  <div class="panel" style="margin-bottom:24px; animation: fadeUp 0.6s ease 0.1s both;">
+    <div class="panel-header"><i class="fas fa-magic"></i> New Key Batch</div>
+    <div class="panel-body">
+      <form method="POST" action="/admin/keys/generate">
+        <div class="gen-form">
+          <div class="field">
+            <label>Plan</label>
+            <select name="plan" class="form-select">
+              {% for p in plans %}
+              <option value="{{ p.name }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Days</label>
+            <input type="number" name="days" class="form-input" placeholder="30" value="30" min="1">
+          </div>
+          <div class="field">
+            <label>Count</label>
+            <input type="number" name="count" class="form-input" placeholder="1" value="1" min="1" max="100">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-generate"><i class="fas fa-plus"></i> Generate Keys</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Keys Table -->
+  <div class="section-title"><i class="fas fa-list"></i> All Keys</div>
+  <div class="panel table-panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Plan</th>
+            <th>Days</th>
+            <th>Created</th>
+            <th>Used By</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k in keys %}
+          <tr>
+            <td>
+              <span class="key-code" title="{{ k.key }}" onclick="copyKey('{{ k.key }}', this)">{{ k.key }}</span>
+              <button class="copy-btn" onclick="copyKey('{{ k.key }}')" title="Copy key"><i class="fas fa-copy"></i></button>
+            </td>
+            <td><span class="plan-pill">{{ k.plan }}</span></td>
+            <td style="font-family:'Orbitron',monospace; font-size:12px; color:var(--muted);">{{ k.duration_days }}d</td>
+            <td style="font-size:13px; color:var(--muted);">{{ k.created_at.strftime('%Y-%m-%d') }}</td>
+            <td style="font-size:13px;">
+              {% if k.used_by %}
+                <span style="color:var(--blue); font-weight:600;">{{ k.used_by }}</span>
+              {% else %}
+                <span style="color:rgba(255,255,255,0.2);">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if k.active and not k.used_by %}
+                <span class="status-badge s-active"><span class="s-dot"></span>Active</span>
+              {% elif k.used_by %}
+                <span class="status-badge s-used"><span class="s-dot"></span>Used</span>
+              {% else %}
+                <span class="status-badge s-inactive"><span class="s-dot"></span>Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST" action="/admin/keys/{{ k.id }}/delete" onsubmit="return confirm('Delete this key?')">
+                <button type="submit" class="btn-del"><i class="fas fa-trash"></i> Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon">🗝️</div>
+                No keys generated yet. Use the form above to create some.
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function copyKey(key, el) {
+  navigator.clipboard.writeText(key).then(() => {
+    if (el) {
+      const orig = el.textContent;
+      el.textContent = 'Copied!';
+      el.style.color = 'var(--green)';
+      setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 1500);
+    }
+  });
+}
+</script>
+
+</body>
+</html>
 '''
 
 ADMIN_TEST_ATTACK_HTML = '''
