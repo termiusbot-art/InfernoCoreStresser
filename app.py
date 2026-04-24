@@ -3104,61 +3104,382 @@ document.addEventListener('click', e => {
 
 ATTACK_HTML = '''
 <!DOCTYPE html>
-<html><head><title>Attack Hub • </title><meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html lang="en">
+<head>
+<title>Attack Hub • STRESSER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>body{background:radial-gradient(circle at 10% 20%, #0a0a1a, #000); font-family:'Inter',sans-serif; color:#fff; padding:20px; animation:fadeInUp 0.6s ease-out;}
-.glass-card{background:rgba(15,25,45,0.45);backdrop-filter:blur(12px);border-radius:32px;border:1px solid rgba(0,255,200,0.2);padding:28px;margin-bottom:30px;}
-.btn-neon{background:linear-gradient(90deg,#00b377,#00cc88);border:none;border-radius:60px;padding:12px 24px;font-weight:bold;transition:0.2s;width:100%;}
-.btn-neon:hover{transform:scale(1.02);box-shadow:0 0 15px #00ff88;}
-input,select{background:rgba(0,0,0,0.5); border:1px solid #2a3a5a; border-radius:40px; padding:12px 20px; color:white; width:100%;}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #030508;
+  --surface: rgba(6, 16, 28, 0.75);
+  --border: rgba(0, 255, 200, 0.18);
+  --border2: rgba(255,255,255,0.06);
+  --accent: #00ffcc;
+  --accent2: #00aaff;
+  --text: #cce8e0;
+  --muted: rgba(180, 220, 210, 0.45);
+  --radius: 28px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background orbs & grid (green theme) */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(110px);
+  opacity: 0.14; pointer-events: none; z-index: 0;
+  animation: drift linear infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(#00ffcc, transparent 70%); top: -200px; right: -150px; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(#00aaff, transparent 70%); bottom: -100px; left: -100px; animation-duration: 30s; animation-direction: reverse; }
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(-30px,20px) scale(1.05); }
+  66%  { transform: translate(20px,-15px) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  animation: fadeUp 0.6s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* Topbar area with animated icon */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px;
+  transition: all 0.2s;
+}
+.back-btn:hover { color: var(--accent); border-color: var(--border); background: rgba(0,255,200,0.05); }
+
+.page-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.page-icon-wrap {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,170,255,0.1));
+  border: 1px solid rgba(0,255,200,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  color: var(--accent);
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(0,255,200,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(0,255,200,0.45); }
+}
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* Glass card with corner accents */
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 32px;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 80px rgba(0,255,200,0.03) inset;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 72px; height: 72px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+.card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 72px; height: 72px;
+  border-bottom: 2px solid var(--accent2);
+  border-right: 2px solid var(--accent2);
+  border-radius: 0 0 var(--radius) 0;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.alert-danger  { background: rgba(255,77,109,0.1); border-color: rgba(255,77,109,0.3); color: #ff8fa3; }
+.alert-success { background: rgba(0,255,200,0.08); border-color: rgba(0,255,200,0.25); color: var(--accent); }
+.alert-warning { background: rgba(255,190,50,0.1); border-color: rgba(255,190,50,0.3); color: #ffd166; }
+
+/* Form grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-grid.two { grid-template-columns: 1fr 1fr; }
+.form-grid.one { grid-template-columns: 1fr; }
+
+.field label {
+  display: block;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.form-input, .form-select {
+  width: 100%;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 11px 16px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+}
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300ffcc' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.form-input::placeholder { color: rgba(180,220,210,0.25); }
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,200,0.1);
+  background: rgba(0,255,200,0.03);
+}
+.form-select option { background: #0a1a16; color: var(--text); }
+
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 12px 0;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.check-item input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.check-item label { color: var(--muted); cursor: pointer; }
+
+/* Shimmer button */
+.btn-attack {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: 14px;
+  color: #020408;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.btn-attack::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.18);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.4s ease;
+}
+.btn-attack:hover::before { transform: translateX(100%) skewX(-15deg); }
+.btn-attack:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,255,200,0.35);
+}
+
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid.three { grid-template-columns: 1fr; }
+  .check-row { flex-direction: column; gap: 8px; }
+}
 </style>
 </head>
-<body><div class="container py-4">
-<div class="glass-card"><h2 class="mb-3"><i class="fas fa-bolt me-2"></i> Launch Attack</h2>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat, msg in messages %}<div class="alert alert-{{cat}}">{{msg}}</div>{% endfor %}{% endwith %}
-<form method="POST">
-    <div class="row">
-        <div class="col-md-6"><label>Target IP</label><input type="text" name="target" placeholder="1.1.1.1" required></div>
-        <div class="col-md-6"><label>Port</label><input type="number" name="port" placeholder="443" required></div>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <div class="page-title-wrap">
+      <div class="page-icon-wrap"><i class="fas fa-bolt"></i></div>
+      <h1 class="page-title">Attack Hub</h1>
     </div>
-    <div class="row mt-3">
-        <div class="col-md-4"><label>Duration (max {{ user.max_duration }}s)</label><input type="number" name="duration" value="60" required></div>
-        <div class="col-md-4"><label>Threads (max {{ user.max_threads }})</label><input type="number" name="threads" value="1500" required></div>
-        <div class="col-md-4"><label>Concurrent (max {{ user.max_concurrent }})</label><input type="number" name="concurrent" value="1" required></div>
-    </div>
-    <div class="row mt-3">
-        <div class="col-md-6">
-            <label>Attack Method</label>
-            <select name="method" class="form-select bg-dark text-white">
-                {% for val, label in methods %}
-                <option value="{{ val }}">{{ label }}</option>
-                {% endfor %}
-            </select>
+  </div>
+
+  <!-- Attack Card -->
+  <div class="card">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">
+          {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
+          {{ msg }}
         </div>
-        <div class="col-md-6">
-            <label>Attack Mode</label>
-            <select name="mode" class="form-select bg-dark text-white">
-                <option value="default">Default (Mixed Payloads)</option>
-                <option value="max-pps">⚡ Max PPS (Tiny Packets)</option>
-                <option value="max-bandwidth">🌊 Max Bandwidth (Reflection/Large)</option>
-                <option value="both">🔥 Both (Blended 70% BW / 30% PPS)</option>
-            </select>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+
+      <!-- Target & Port -->
+      <div class="form-grid">
+        <div class="field">
+          <label>Target IP</label>
+          <input type="text" name="target" class="form-input" placeholder="1.1.1.1" required>
         </div>
-    </div>
-    <div class="mt-3">
-        <label class="form-check-label me-3"><input type="checkbox" name="random_ports" value="1"> Random Ports</label>
-        <label class="form-check-label me-3"><input type="checkbox" name="random_delay" value="1"> Random Delay</label>
-        <label class="form-check-label me-3"><input type="checkbox" name="spoof" value="1"> Spoof (UDP/SYN)</label>
-        <label class="form-check-label"><input type="checkbox" name="flood" value="1"> Flood Mode (No Output)</label>
-    </div>
-    <div class="mt-3"><label>PPS Limit (0 = unlimited)</label><input type="number" name="pps_limit" class="form-control bg-dark text-white" value="0" min="0"></div>
-    <button type="submit" class="btn-neon mt-4">💥 Launch Attack</button>
-</form></div>
-<a href="/dashboard" class="btn btn-link text-info">← Back to Dashboard</a></div>
-</body></html>
+        <div class="field">
+          <label>Port</label>
+          <input type="number" name="port" class="form-input" placeholder="443" required>
+        </div>
+      </div>
+
+      <!-- Duration, Threads, Concurrent -->
+      <div class="form-grid three">
+        <div class="field">
+          <label>Duration (max {{ user.max_duration }}s)</label>
+          <input type="number" name="duration" class="form-input" value="60" required>
+        </div>
+        <div class="field">
+          <label>Threads (max {{ user.max_threads }})</label>
+          <input type="number" name="threads" class="form-input" value="1500" required>
+        </div>
+        <div class="field">
+          <label>Concurrent (max {{ user.max_concurrent }})</label>
+          <input type="number" name="concurrent" class="form-input" value="1" required>
+        </div>
+      </div>
+
+      <!-- Method & Mode -->
+      <div class="form-grid">
+        <div class="field">
+          <label>Attack Method</label>
+          <select name="method" class="form-select">
+            {% for val, label in methods %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Attack Mode</label>
+          <select name="mode" class="form-select">
+            <option value="default">Default (Mixed Payloads)</option>
+            <option value="max-pps">⚡ Max PPS (Tiny Packets)</option>
+            <option value="max-bandwidth">🌊 Max Bandwidth (Reflection/Large)</option>
+            <option value="both">🔥 Both (Blended 70% BW / 30% PPS)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="check-row">
+        <div class="check-item">
+          <input type="checkbox" name="random_ports" value="1" id="randPorts">
+          <label for="randPorts">Random Ports</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" name="random_delay" value="1" id="randDelay">
+          <label for="randDelay">Random Delay</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" name="spoof" value="1" id="spoof">
+          <label for="spoof">Spoof (UDP/SYN)</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" name="flood" value="1" id="flood">
+          <label for="flood">Flood Mode (No Output)</label>
+        </div>
+      </div>
+
+      <!-- PPS Limit -->
+      <div class="field">
+        <label>PPS Limit (0 = unlimited)</label>
+        <input type="number" name="pps_limit" class="form-input" value="0" min="0">
+      </div>
+
+      <button type="submit" class="btn-attack">💥 Launch Attack</button>
+    </form>
+  </div>
+
+</div>
+</body>
+</html>
 '''
 
 PRODUCTS_HTML = '''
@@ -3635,370 +3956,6 @@ body {
   </div>
 
 </div>
-</body>
-</html>
-'''
-
-REDEEM_HTML = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<title>Redeem Key • </title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #030508;
-  --surface: rgba(6, 16, 28, 0.75);
-  --border: rgba(0, 255, 200, 0.18);
-  --accent: #00ffcc;
-  --accent2: #00aaff;
-  --text: #cce8e0;
-  --muted: rgba(180, 220, 210, 0.45);
-  --radius: 28px;
-}
-
-body {
-  background: var(--bg);
-  font-family: 'Rajdhani', sans-serif;
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Background */
-.bg-grid {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-image:
-    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
-  background-size: 56px 56px;
-  pointer-events: none;
-}
-.orb {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.2;
-  pointer-events: none;
-  animation: drift linear infinite;
-}
-.orb-1 { width: 500px; height: 500px; background: radial-gradient(#00ffcc, transparent 70%); top: -180px; left: -120px; animation-duration: 22s; z-index: 0; }
-.orb-2 { width: 400px; height: 400px; background: radial-gradient(#00aaff, transparent 70%); bottom: -120px; right: -80px; animation-duration: 28s; animation-direction: reverse; z-index: 0; }
-
-@keyframes drift {
-  0%   { transform: translate(0,0) scale(1); }
-  33%  { transform: translate(30px,-25px) scale(1.06); }
-  66%  { transform: translate(-20px,18px) scale(0.96); }
-  100% { transform: translate(0,0) scale(1); }
-}
-
-/* Card */
-.card {
-  position: relative;
-  z-index: 10;
-  background: var(--surface);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 48px 44px;
-  width: 100%;
-  max-width: 460px;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 80px rgba(0,255,200,0.04) inset;
-  animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Corner accents */
-.card::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px;
-  width: 72px; height: 72px;
-  border-top: 2px solid var(--accent);
-  border-left: 2px solid var(--accent);
-  border-radius: var(--radius) 0 0 0;
-  opacity: 0.8;
-}
-.card::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; right: -1px;
-  width: 72px; height: 72px;
-  border-bottom: 2px solid var(--accent2);
-  border-right: 2px solid var(--accent2);
-  border-radius: 0 0 var(--radius) 0;
-  opacity: 0.8;
-}
-
-/* Header */
-.header {
-  text-align: center;
-  margin-bottom: 36px;
-}
-.icon-wrap {
-  width: 64px; height: 64px;
-  background: linear-gradient(135deg, rgba(0,255,200,0.12), rgba(0,170,255,0.12));
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 20px;
-  font-size: 28px;
-  animation: glow 3s ease-in-out infinite;
-}
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(0,255,200,0.2); }
-  50%       { box-shadow: 0 0 40px rgba(0,255,200,0.45); }
-}
-
-.title {
-  font-family: 'Orbitron', monospace;
-  font-size: 24px;
-  font-weight: 900;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-}
-.subtitle {
-  color: var(--muted);
-  font-size: 14px;
-  margin-top: 6px;
-  letter-spacing: 0.3px;
-}
-
-/* Alerts */
-.alert {
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  margin-bottom: 20px;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-  animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
-.alert-danger  { background: rgba(255,77,109,0.1);  border-color: rgba(255,77,109,0.3);  color: #ff8fa3; }
-.alert-success { background: rgba(0,255,200,0.08);  border-color: rgba(0,255,200,0.3);   color: var(--accent); }
-.alert-warning { background: rgba(255,190,50,0.1);  border-color: rgba(255,190,50,0.3);  color: #ffd166; }
-
-/* Key input area */
-.key-field { margin-bottom: 24px; }
-
-.key-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 10px;
-}
-
-.key-input-wrap {
-  position: relative;
-}
-
-.key-icon {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-input[type="text"] {
-  width: 100%;
-  background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 15px 18px 15px 50px;
-  color: var(--text);
-  font-family: 'Orbitron', monospace;
-  font-size: 13px;
-  letter-spacing: 1px;
-  outline: none;
-  transition: all 0.25s ease;
-}
-input::placeholder {
-  color: rgba(180,220,210,0.25);
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.5px;
-}
-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0,255,200,0.1), 0 0 20px rgba(0,255,200,0.07);
-  background: rgba(0,255,200,0.03);
-}
-
-/* Key segments hint */
-.key-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  padding-left: 4px;
-}
-.key-seg {
-  font-size: 11px;
-  font-family: 'Orbitron', monospace;
-  color: rgba(0,255,200,0.3);
-  letter-spacing: 1px;
-}
-.key-sep { color: rgba(255,255,255,0.15); font-size: 11px; }
-
-/* Submit button */
-.btn-redeem {
-  width: 100%;
-  padding: 15px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none;
-  border-radius: 14px;
-  color: #020408;
-  font-family: 'Orbitron', monospace;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  position: relative;
-  overflow: hidden;
-}
-.btn-redeem::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.18);
-  transform: translateX(-100%) skewX(-15deg);
-  transition: transform 0.4s ease;
-}
-.btn-redeem:hover::before { transform: translateX(100%) skewX(-15deg); }
-.btn-redeem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0,255,200,0.35);
-}
-.btn-redeem:active { transform: translateY(0); }
-
-/* Info box */
-.info-box {
-  background: rgba(0,170,255,0.05);
-  border: 1px solid rgba(0,170,255,0.15);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin: 20px 0;
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-.info-box-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-.info-box-text { font-size: 13px; color: var(--muted); line-height: 1.55; }
-.info-box-text strong { color: var(--accent2); }
-
-/* Footer links */
-.footer {
-  text-align: center;
-  margin-top: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.footer a {
-  color: var(--accent);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  transition: color 0.2s;
-}
-.footer a:hover { color: #fff; }
-.footer-sep { color: rgba(255,255,255,0.15); font-size: 13px; }
-</style>
-</head>
-<body>
-
-<div class="bg-grid"></div>
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
-
-<div class="card">
-
-  <div class="header">
-    <div class="icon-wrap">🔑</div>
-    <h1 class="title">Redeem Key</h1>
-    <p class="subtitle">Enter your access key to unlock your plan</p>
-  </div>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="alert alert-{{ cat }}">
-        {% if cat == 'danger' %}⚠️{% elif cat == 'success' %}✅{% else %}ℹ️{% endif %}
-        {{ msg }}
-      </div>
-    {% endfor %}
-  {% endwith %}
-
-  <form method="POST" autocomplete="off">
-
-    <div class="key-field">
-      <label class="key-label">Access Key</label>
-      <div class="key-input-wrap">
-        <span class="key-icon">🗝️</span>
-        <input type="text" name="key" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" spellcheck="false">
-      </div>
-      <div class="key-hint">
-        <span class="key-seg">XXXX</span>
-        <span class="key-sep">—</span>
-        <span class="key-seg">XXXX</span>
-        <span class="key-sep">—</span>
-        <span class="key-seg">XXXX</span>
-        <span class="key-sep">—</span>
-        <span class="key-seg">XXXX</span>
-      </div>
-    </div>
-
-    <button type="submit" class="btn-redeem">⚡ Activate Key</button>
-
-  </form>
-
-  <div class="info-box">
-    <div class="info-box-icon">💡</div>
-    <div class="info-box-text">
-      Keys are <strong>single-use</strong> and tied to your account once redeemed. Contact support if your key isn't working.
-    </div>
-  </div>
-
-  <div class="footer">
-    <a href="/login">← Back to Login</a>
-    <span class="footer-sep">|</span>
-    <a href="/register">Register</a>
-  </div>
-
-</div>
-
 </body>
 </html>
 '''
