@@ -2609,18 +2609,16 @@ DASHBOARD_HTML = '''
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #030508;
-  --surface: rgba(6, 16, 28, 0.72);
-  --surface2: rgba(4, 12, 22, 0.6);
-  --border: rgba(0, 255, 200, 0.15);
-  --border2: rgba(255,255,255,0.06);
-  --accent: #00ffcc;
-  --accent2: #00aaff;
-  --text: #cce8e0;
-  --muted: rgba(180, 220, 210, 0.45);
-  --sidebar-w: 270px;
-  --radius: 20px;
-  --panel-radius: 28px;
+  --bg: #0a0a0f;
+  --surface: rgba(20,20,35,0.8);
+  --border: rgba(255,255,255,0.06);
+  --accent: #ff3366;
+  --accent2: #ff6680;
+  --green: #00ffaa;
+  --blue: #00aaff;
+  --yellow: #ffcc00;
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.5);
 }
 
 body {
@@ -2631,468 +2629,184 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Background ── */
 .bg-grid {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-image:
-    linear-gradient(rgba(0,255,200,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,200,0.03) 1px, transparent 1px);
-  background-size: 56px 56px;
-}
-.orb {
-  position: fixed; border-radius: 50%; filter: blur(110px);
-  opacity: 0.16; pointer-events: none; z-index: 0;
-  animation: orbFloat linear infinite;
-}
-.orb-1 { width: 600px; height: 600px; background: radial-gradient(#00ffcc, transparent 70%); top: -200px; left: 20px; animation-duration: 24s; }
-.orb-2 { width: 500px; height: 500px; background: radial-gradient(#00aaff, transparent 70%); bottom: -150px; right: -100px; animation-duration: 30s; animation-direction: reverse; }
-@keyframes orbFloat {
-  0%   { transform: translate(0,0) scale(1); }
-  33%  { transform: translate(30px,-20px) scale(1.05); }
-  66%  { transform: translate(-20px,15px) scale(0.96); }
-  100% { transform: translate(0,0) scale(1); }
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
-/* ── Sidebar ── */
-.sidebar {
-  position: fixed; left: 0; top: 0;
-  width: var(--sidebar-w); height: 100%;
-  background: rgba(3, 10, 18, 0.92);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid var(--border);
-  padding: 28px 18px;
-  z-index: 50;
-  display: flex; flex-direction: column;
-  transition: transform 0.3s ease;
-}
+.container { position: relative; z-index: 10; max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-.sidebar-logo {
-  text-align: center; margin-bottom: 32px; padding-bottom: 24px;
-  border-bottom: 1px solid var(--border2);
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: rgba(15,15,25,0.9);
+  border: 1px solid var(--border); border-radius: 16px;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
 }
-.logo-text {
+.logo {
   font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  letter-spacing: 2px;
 }
-.logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
-
-/* Nav */
-.nav-section-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 2px;
-  text-transform: uppercase; color: rgba(180,220,210,0.25);
-  padding: 0 12px; margin: 16px 0 6px;
-}
+.nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .nav-link {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 14px; margin: 3px 0;
-  border-radius: 12px; color: var(--muted);
-  text-decoration: none; font-size: 14px; font-weight: 600;
-  letter-spacing: 0.3px; transition: all 0.2s;
+  padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  color: var(--muted); text-decoration: none; transition: all 0.2s;
   border: 1px solid transparent;
 }
-.nav-link i { width: 18px; text-align: center; font-size: 14px; opacity: 0.7; flex-shrink: 0; }
-.nav-link:hover { color: var(--accent); background: rgba(0,255,200,0.06); border-color: rgba(0,255,200,0.1); }
-.nav-link.active {
-  color: var(--accent); background: rgba(0,255,200,0.1);
-  border-color: rgba(0,255,200,0.2);
-  box-shadow: 0 0 12px rgba(0,255,200,0.06) inset;
-}
-.nav-link.active i { opacity: 1; }
-
-/* Plan info */
-.plan-box {
-  margin-top: auto; padding-top: 20px;
-  border-top: 1px solid var(--border2);
-}
-.plan-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(0,255,200,0.08); border: 1px solid var(--border);
-  border-radius: 20px; padding: 4px 12px; margin-bottom: 14px;
-  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
-  letter-spacing: 1px; color: var(--accent);
-}
-.plan-stat {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 13px;
-}
-.plan-stat:last-child { border-bottom: none; }
-.plan-stat-label { color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.plan-stat-label i { width: 14px; text-align: center; font-size: 12px; }
-.plan-stat-val { font-weight: 700; color: var(--text); font-family: 'Orbitron', monospace; font-size: 12px; }
-
-/* ── Mobile toggle ── */
-.menu-toggle {
-  display: none; position: fixed; top: 16px; left: 16px; z-index: 60;
-  background: var(--accent); border: none; border-radius: 10px;
-  width: 40px; height: 40px; color: #020408; font-size: 16px;
-  cursor: pointer; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(0,255,200,0.3);
-}
-
-/* ── Main content ── */
-.main {
-  margin-left: var(--sidebar-w);
-  padding: 32px 28px;
-  position: relative; z-index: 10;
-  animation: fadeUp 0.6s ease both;
-}
-@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-
-/* Page header with animated icon */
-.page-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
-}
-.page-title-wrap {
-  display: flex; align-items: center; gap: 14px;
-}
-.page-icon-wrap {
-  width: 48px; height: 48px;
-  background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,170,255,0.1));
-  border: 1px solid rgba(0,255,200,0.3);
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  color: var(--accent);
-  animation: pulseGlow 2.8s ease-in-out infinite;
-}
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 16px rgba(0,255,200,0.2); }
-  50%       { box-shadow: 0 0 30px rgba(0,255,200,0.45); }
-}
-.page-title {
-  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.online-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.2);
-  border-radius: 20px; padding: 5px 14px;
-  font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--accent);
-}
-.online-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: blink 2s ease infinite; }
-@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-/* Section title */
-.section-title {
-  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
-  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
-  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
-}
-.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
-
-/* Cards with corner accents */
-.card {
-  background: var(--surface);
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border);
-  border-radius: var(--panel-radius);
-  padding: 28px;
-  margin-bottom: 22px;
-  position: relative;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px;
-  width: 72px; height: 72px;
-  border-top: 2px solid var(--accent);
-  border-left: 2px solid var(--accent);
-  border-radius: var(--panel-radius) 0 0 0;
-  opacity: 0.9;
-  pointer-events: none;
-  z-index: 2;
-}
-.card::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; right: -1px;
-  width: 72px; height: 72px;
-  border-bottom: 2px solid var(--accent2);
-  border-right: 2px solid var(--accent2);
-  border-radius: 0 0 var(--panel-radius) 0;
-  opacity: 0.9;
-  pointer-events: none;
-  z-index: 2;
-}
-.card:hover { border-color: rgba(0,255,200,0.35); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+.nav-link.active { color: var(--accent); background: rgba(255,51,102,0.1); border-color: rgba(255,51,102,0.3); }
+.nav-link i { margin-right: 6px; }
 
 /* Stats row */
 .stats-row {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 .stat-card {
-  background: var(--surface2);
-  border: 1px solid var(--border2); border-radius: 16px;
-  padding: 22px 20px; text-align: center;
-  transition: border-color 0.2s;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; text-align: center;
 }
-.stat-card:hover { border-color: rgba(0,255,200,0.2); }
 .stat-number {
-  font-family: 'Orbitron', monospace; font-size: 40px; font-weight: 900;
-  background: linear-gradient(135deg, #fff, var(--accent));
+  font-family: 'Orbitron', monospace; font-size: 36px; font-weight: 900;
+  background: linear-gradient(135deg, #fff, var(--accent2));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  line-height: 1;
 }
-.stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
 
-/* Progress bar */
-.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
-.progress-pct { font-family: 'Orbitron', monospace; font-size: 13px; color: var(--accent); }
-.progress-track {
-  height: 8px; background: rgba(255,255,255,0.06);
-  border-radius: 20px; overflow: hidden;
+/* Cards */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; margin-bottom: 24px;
 }
-.progress-fill {
-  height: 100%; border-radius: 20px;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
-  box-shadow: 0 0 12px rgba(0,255,200,0.4);
+.card-title {
+  font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px;
 }
 
-/* Upgrade button */
-.btn-upgrade {
-  display: block; width: 100%; padding: 14px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none; border-radius: 12px;
-  color: #020408; font-family: 'Orbitron', monospace;
-  font-size: 12px; font-weight: 700; letter-spacing: 2px;
-  text-transform: uppercase; text-decoration: none; text-align: center;
-  cursor: pointer; transition: all 0.25s ease; margin-top: 20px;
-  position: relative; overflow: hidden;
-}
-.btn-upgrade::before {
-  content: ''; position: absolute; inset: 0;
-  background: rgba(255,255,255,0.15);
-  transform: translateX(-100%) skewX(-15deg);
-  transition: transform 0.4s ease;
-}
-.btn-upgrade:hover::before { transform: translateX(100%) skewX(-15deg); }
-.btn-upgrade:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,255,200,0.35); }
+/* Progress */
+.progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+.progress-pct { color: var(--accent); }
+.progress-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
 
-/* Redeem form */
-.redeem-row {
-  display: flex; gap: 12px; margin: 16px 0 8px; flex-wrap: wrap;
-}
+/* Redeem */
+.redeem-row { display: flex; gap: 12px; margin-top: 12px; }
 .redeem-input {
-  flex: 1; min-width: 180px;
-  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 12px; padding: 13px 18px;
-  color: var(--text); font-family: 'Orbitron', monospace; font-size: 12px;
-  letter-spacing: 1px; outline: none; transition: all 0.2s;
+  flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 12px 16px; color: #fff; font-family: 'Orbitron', monospace;
+  font-size: 12px; letter-spacing: 1px; outline: none;
 }
-.redeem-input::placeholder { color: rgba(180,220,210,0.2); font-family: 'Rajdhani',sans-serif; font-size:14px; letter-spacing:0.5px; }
-.redeem-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,255,200,0.1); background: rgba(0,255,200,0.03); }
-.btn-redeem {
-  padding: 13px 24px; background: rgba(0,255,200,0.12);
-  border: 1px solid rgba(0,255,200,0.3); border-radius: 12px;
-  color: var(--accent); font-family: 'Orbitron', monospace;
-  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+.redeem-input:focus { border-color: var(--accent); }
+.btn {
+  padding: 12px 24px; border-radius: 10px; font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; border: none; transition: all 0.2s;
 }
-.btn-redeem:hover { background: rgba(0,255,200,0.2); transform: translateY(-1px); }
-.redeem-note { font-size: 12px; color: var(--muted); }
-
-/* Info box inside redeem */
-.info-box {
-  background: rgba(0,170,255,0.05);
-  border: 1px solid rgba(0,170,255,0.15);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-top: 16px;
-  display: flex; gap: 10px; align-items: flex-start;
-  font-size: 13px; color: var(--muted);
+.btn-redeem { background: var(--accent); color: #fff; }
+.btn-redeem:hover { background: var(--accent2); }
+.btn-upgrade {
+  display: block; width: 100%; padding: 14px; margin-top: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; text-align: center; text-decoration: none; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700; letter-spacing: 1px;
 }
-.info-box i { color: var(--accent2); flex-shrink: 0; margin-top: 2px; }
 
 /* Table */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-thead tr { border-bottom: 1px solid var(--border); background: rgba(0,255,200,0.04); }
 th {
-  padding: 11px 14px; font-family: 'Orbitron', monospace;
-  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--muted); text-align: left; white-space: nowrap;
+  padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted); text-align: left;
+  border-bottom: 1px solid var(--border);
 }
-td {
-  padding: 13px 14px; font-size: 13px; font-weight: 500;
-  border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
-}
-tbody tr { transition: background 0.15s; }
-tbody tr:hover { background: rgba(0,255,200,0.03); }
-tbody tr:last-child td { border-bottom: none; }
+td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.target-cell { font-family: 'Orbitron', monospace; font-size: 12px; color: var(--accent2); }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+.empty-state { text-align: center; padding: 40px; color: var(--muted); }
 
-.status-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-}
-.s-done { background: rgba(0,255,170,0.1); border: 1px solid rgba(0,255,170,0.25); color: #00ffaa; }
-.s-running { background: rgba(0,170,255,0.1); border: 1px solid rgba(0,170,255,0.25); color: var(--accent2); animation: blink 1.5s infinite; }
-
-.target-cell { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--accent2); }
-.method-cell { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
-
-.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
-.empty-icon  { font-size: 36px; opacity: 0.3; margin-bottom: 10px; }
-
-/* Card description */
-.card-desc { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
-
-/* Responsive */
-@media (max-width: 800px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0; padding: 70px 16px 24px; }
-  .menu-toggle { display: flex; }
+@media (max-width: 768px) {
   .stats-row { grid-template-columns: 1fr; }
+  .redeem-row { flex-direction: column; }
 }
 </style>
 </head>
 <body>
-
 <div class="bg-grid"></div>
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
+<div class="container">
 
-<!-- Mobile toggle -->
-<button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-text">⚡ STRESSER</div>
-    <div class="logo-sub">Control Panel</div>
+  <!-- Header -->
+  <div class="header">
+    <span class="logo">⚡ STRESSER</span>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+      <a href="/attack" class="nav-link"><i class="fas fa-bolt"></i> Attack Hub</a>
+      <a href="/products" class="nav-link"><i class="fas fa-layer-group"></i> Plans</a>
+      <a href="https://t.me/Ig_ansh" target="_blank" class="nav-link"><i class="fab fa-telegram-plane"></i> Support</a>
+      <a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
   </div>
 
-  <div class="nav-section-label">Navigation</div>
-  <nav>
-    <a href="/dashboard" class="nav-link active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-    <a href="/attack" class="nav-link"><i class="fas fa-bolt"></i> Attack Hub</a>
-    <a href="/products" class="nav-link"><i class="fas fa-layer-group"></i> Products</a>
-    <a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
-  </nav>
-
-  <div class="plan-box">
-    <div class="plan-badge">⚡ {{ user.plan }}</div>
-    <div class="plan-stat">
-      <span class="plan-stat-label"><i class="fas fa-hourglass-half"></i> Duration</span>
-      <span class="plan-stat-val">{{ user.max_duration }}s</span>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">{{ slots_used }}</div>
+      <div class="stat-label">Slots Used</div>
     </div>
-    <div class="plan-stat">
-      <span class="plan-stat-label"><i class="fas fa-layer-group"></i> Concurrent</span>
-      <span class="plan-stat-val">{{ user.max_concurrent }}</span>
+    <div class="stat-card">
+      <div class="stat-number">{{ max_slots }}</div>
+      <div class="stat-label">Max Slots</div>
     </div>
-    <div class="plan-stat">
-      <span class="plan-stat-label"><i class="fas fa-microchip"></i> Threads</span>
-      <span class="plan-stat-val">{{ user.max_threads }}</span>
-    </div>
-    {% if user.expiry %}
-    <div class="plan-stat">
-      <span class="plan-stat-label"><i class="far fa-calendar-alt"></i> Expires</span>
-      <span class="plan-stat-val">{{ user.expiry.strftime('%Y-%m-%d') }}</span>
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-<!-- Main -->
-<div class="main">
-
-  <div class="page-header">
-    <div class="page-title-wrap">
-      <div class="page-icon-wrap"><i class="fas fa-tachometer-alt"></i></div>
-      <h1 class="page-title">Dashboard</h1>
-    </div>
-    <div class="online-pill"><div class="online-dot"></div> Online</div>
   </div>
 
-  <!-- Network Status -->
-  <div class="section-title"><i class="fas fa-chart-line"></i> Network Status</div>
+  <!-- Network Load -->
   <div class="card">
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-number">{{ slots_used }}</div>
-        <div class="stat-label">Slots Used</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ max_slots }}</div>
-        <div class="stat-label">Max Slots</div>
-      </div>
-    </div>
-
+    <div class="card-title"><i class="fas fa-chart-line"></i> Network Load</div>
     <div class="progress-header">
-      <span>Network Load</span>
+      <span>Current Load</span>
       <span class="progress-pct">{{ (slots_used/max_slots*100)|round(0) if max_slots>0 else 0 }}%</span>
     </div>
     <div class="progress-track">
       <div class="progress-fill" style="width: {{ (slots_used/max_slots*100) if max_slots>0 else 0 }}%;"></div>
     </div>
-
     <a href="/products" class="btn-upgrade">⚡ Upgrade Plan</a>
   </div>
 
   <!-- Redeem Key -->
-  <div class="section-title"><i class="fas fa-key"></i> Redeem Key</div>
   <div class="card">
-    <p class="card-desc">Have a premium access key? Redeem it to upgrade your plan instantly.</p>
+    <div class="card-title"><i class="fas fa-key"></i> Redeem Key</div>
+    <p style="color: var(--muted); font-size: 13px;">Have a premium access key? Redeem it to upgrade your plan instantly.</p>
     <form method="POST" action="/redeem">
       <div class="redeem-row">
-        <input type="text" name="key" class="redeem-input" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" spellcheck="false">
-        <button type="submit" class="btn-redeem"><i class="fas fa-unlock" style="margin-right:6px;"></i>Redeem</button>
+        <input type="text" name="key" class="redeem-input" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+        <button type="submit" class="btn btn-redeem">Redeem</button>
       </div>
     </form>
-    <div class="info-box">
-      <i class="fas fa-info-circle"></i>
-      <div>Keys are <strong style="color:var(--accent);">single‑use</strong> and will be permanently linked to your account. Enter the key exactly as shown.</div>
-    </div>
   </div>
 
   <!-- Recent Activity -->
-  <div class="section-title"><i class="fas fa-history"></i> Recent Activity</div>
-  <div class="card" style="padding:0; overflow:hidden;">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="card-title" style="padding: 24px 24px 0;"><i class="fas fa-history"></i> Recent Activity</div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Target</th>
-            <th>Port</th>
-            <th>Duration</th>
-            <th>Method</th>
-            <th>Mode</th>
-            <th>Threads</th>
-            <th>Status</th>
-            <th>Time</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Target</th><th>Port</th><th>Duration</th><th>Threads</th><th>Status</th><th>Time</th></tr></thead>
         <tbody>
           {% for a in attacks %}
           <tr>
             <td class="target-cell">{{ a.target }}</td>
-            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.port }}</td>
-            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.duration }}s</td>
-            <td class="method-cell">{{ a.method }}</td>
-            <td class="method-cell">{{ a.mode }}</td>
-            <td style="font-family:'Orbitron',monospace;font-size:12px;">{{ a.threads }}</td>
-            <td>
-              <span class="status-badge s-done">{{ a.status }}</span>
-            </td>
-            <td style="font-size:12px;color:var(--muted);font-family:'Orbitron',monospace;">{{ a.timestamp.strftime('%H:%M:%S') }}</td>
+            <td>{{ a.port }}</td>
+            <td>{{ a.duration }}s</td>
+            <td>{{ a.threads }}</td>
+            <td><span class="status-dot"></span>{{ a.status }}</td>
+            <td style="color: var(--muted); font-size: 12px;">{{ a.timestamp.strftime('%H:%M:%S') }}</td>
           </tr>
           {% else %}
-          <tr>
-            <td colspan="8">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="fas fa-history"></i></div>
-                No recent activity
-              </div>
-            </td>
-          </tr>
+          <tr><td colspan="6"><div class="empty-state">No recent activity</div></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -3100,17 +2814,6 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 
 </div>
-
-<script>
-const toggle = document.getElementById('menuToggle');
-const sidebar = document.getElementById('sidebar');
-toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
-document.addEventListener('click', e => {
-  if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggle) {
-    sidebar.classList.remove('open');
-  }
-});
-</script>
 </body>
 </html>
 
